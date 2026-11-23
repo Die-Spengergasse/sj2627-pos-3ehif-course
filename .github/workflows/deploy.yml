@@ -1,0 +1,145 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # PlantUML diagrams are rendered at build time (scripts/markdown/plantuml.ts).
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 27
+      - run: sudo apt-get install -y --no-install-recommends graphviz
+      - name: Download PlantUML
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/plantuml.jar" \
+            "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar"
+          echo "PLANTUML_JAR=$RUNNER_TEMP/plantuml.jar" >> "$GITHUB_ENV"
+        env:
+          PLANTUML_VERSION: 1.2026.8
+      - uses: actions/cache@v6
+        with:
+          path: node_modules/.cache/plantuml
+          key: plantuml-${{ hashFiles('src/**/*.md') }}
+          restore-keys: plantuml-
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+        env:
+          BASE_PATH: /sj2627-pos-3ehif-course
+      # Smoke test against the prerendered site. BASE_PATH must match the build: `vite preview`
+      # then serves under that path and playwright.config.ts derives its baseURL from it.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          BASE_PATH: /sj2627-pos-3ehif-course
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results
+          retention-days: 7
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: build
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
+  # Every exercise's tests must fail against its starter code (the exercise is not already solved).
+  materials-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 27
+      - run: npm run materials:check
+
+  # Pushes the generated Gradle project to the materials repository students clone.
+  # Skipped until the secret MATERIALS_DEPLOY_KEY exists (see the briefing).
+  materials-publish:
+    if: github.ref == 'refs/heads/main'
+    needs: [build, materials-check]
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.MATERIALS_DEPLOY_KEY != '' }}
+      MATERIALS_REPO: git@github.com:Die-Spengergasse/sj2627-pos-3ehif-course-materials.git
+    steps:
+      - if: env.HAS_KEY != 'true'
+        run: echo "::notice::MATERIALS_DEPLOY_KEY is not set, the materials repository is not updated."
+      - if: env.HAS_KEY == 'true'
+        uses: actions/checkout@v7
+      - if: env.HAS_KEY == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.HAS_KEY == 'true'
+        run: npm ci
+      - if: env.HAS_KEY == 'true'
+        name: Clone the materials repository
+        env:
+          KEY: ${{ secrets.MATERIALS_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/materials && chmod 600 ~/.ssh/materials
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/materials -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/materials -o IdentitiesOnly=yes" git clone "$MATERIALS_REPO" "$RUNNER_TEMP/materials"
+          cp -R "$RUNNER_TEMP/materials" "$RUNNER_TEMP/materials-before"
+      - if: env.HAS_KEY == 'true'
+        name: Generate and check that published exercises did not change
+        run: |
+          npm run materials:generate -- "$RUNNER_TEMP/materials"
+          node scripts/practice/cli.ts immutable "$RUNNER_TEMP/materials-before" "$RUNNER_TEMP/materials"
+      - if: env.HAS_KEY == 'true'
+        name: Commit and push
+        working-directory: ${{ runner.temp }}/materials
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rev-parse --verify HEAD >/dev/null 2>&1 || git switch -c main
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Update exercises from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
+            git push origin HEAD:main
+          fi
