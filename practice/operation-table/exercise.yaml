@@ -1,0 +1,6 @@
+id: operation-table
+title: "Own functional interface: OperationTable"
+module: lambdas
+kind: bonus
+className: OperationTable
+published: true

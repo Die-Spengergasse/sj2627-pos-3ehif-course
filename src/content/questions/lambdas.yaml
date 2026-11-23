@@ -1,0 +1,202 @@
+- id: lam-functional-interface
+  unit: lambdas/functional-interfaces
+  main:
+    kind: multi
+    prompt: Which of these interfaces are functional interfaces, so that a lambda can implement them?
+    options:
+      - |-
+        `interface A { int f(int x); }`
+      - |-
+        `interface B { int f(int x); default int g(int x) { return f(f(x)); } }`
+      - |-
+        `interface C { int f(int x); int g(int x); }`
+      - |-
+        `interface D { default int f(int x) { return x; } }`
+    answer: [0, 1]
+    explanation: |
+      A functional interface has **exactly one abstract method**. `A` has one. `B` has one abstract method and a `default` method, which does not count. `C` has two abstract methods, so the compiler cannot know which one the lambda means. `D` has no abstract method at all.
+  followUps:
+    - kind: single
+      prompt: What does the annotation `@FunctionalInterface` do?
+      options:
+        - The compiler reports an error if the interface does not have exactly one abstract method.
+        - It is required; without it, a lambda cannot implement the interface.
+        - It makes the compiler generate the lambda implementation.
+        - It forbids `default` methods in the interface.
+      answer: 0
+      explanation: |
+        The annotation is optional documentation that the compiler **checks**. Lambdas work with any interface that has exactly one abstract method, annotated or not. It does not forbid `default` or `static` methods.
+
+- id: lam-which-interface
+  unit: lambdas/functional-interfaces
+  main:
+    kind: single
+    prompt: "`words.stream().filter(s -> s.length() > 3)`: which functional interface does the lambda implement?"
+    options:
+      - "`Predicate<String>`"
+      - "`Function<String, Boolean>`"
+      - "`Consumer<String>`"
+      - "`Supplier<String>`"
+    answer: 0
+    explanation: |
+      `filter` expects a yes/no check, which is `Predicate<T>` with `boolean test(T t)`. `Function<String, Boolean>` would also fit the shape of the lambda, but `filter` is declared with `Predicate`, and the declaration decides. A `Consumer` returns nothing, a `Supplier` takes no parameter.
+  followUps:
+    - kind: single
+      prompt: Which functional interface fits the lambda `() -> new ArrayList<String>()`?
+      options:
+        - "`Supplier<List<String>>`"
+        - "`Function<String, List<String>>`"
+        - "`Consumer<List<String>>`"
+        - "`Predicate<List<String>>`"
+      answer: 0
+      explanation: |
+        The lambda takes **no** parameters and **produces** a value, which is the role of `Supplier<T>` with `T get()`. `Function` needs one parameter, `Consumer` returns nothing, `Predicate` returns a `boolean`.
+    - kind: single
+      prompt: Which functional interface fits the lambda `x -> System.out.println(x)`?
+      options:
+        - "`Consumer<T>`"
+        - "`Function<T, Void>`"
+        - "`Supplier<T>`"
+        - "`Predicate<T>`"
+      answer: 0
+      explanation: |
+        The lambda takes one value and returns nothing: that is `Consumer<T>` with `void accept(T t)`. `Function<T, Void>` would require a returned value (`null`), and the lambda has none.
+
+- id: lam-syntax-invalid
+  unit: lambdas/lambda-syntax
+  main:
+    kind: single
+    prompt: "All lambdas are meant for `Function<Integer, Integer>`. Which one does **not** compile?"
+    options:
+      - "`n -> n * 2`"
+      - "`(n) -> n * 2`"
+      - "`n -> { n * 2; }`"
+      - "`(Integer n) -> { return n * 2; }`"
+    answer: 2
+    explanation: |
+      With a block body in braces, you need statements. `n * 2;` is not a valid statement, and the block has no `return`. Either drop the braces (`n -> n * 2`) or write `return n * 2;` inside them. Parentheses around a single parameter and explicit parameter types are both optional extras.
+  followUps:
+    - kind: single
+      prompt: Why does this line not compile?
+      code: |
+        Object check = n -> n > 3;
+      options:
+        - "`Object` is not a functional interface, so the compiler has no target type for the lambda."
+        - "A lambda cannot be assigned to a variable."
+        - "`n` has no declared type."
+        - "`n > 3` must be written in braces with `return`."
+      answer: 0
+      explanation: |
+        A lambda only gets its meaning from the functional interface it is assigned to (target typing). `Object` has no single abstract method to implement. With `Predicate<Integer> check = n -> n > 3;` the same lambda compiles, and the parameter type is inferred.
+
+- id: lam-effectively-final
+  unit: lambdas/lambda-syntax
+  main:
+    kind: single
+    prompt: What is the result of compiling this code?
+    code: |
+      int limit = 3;
+      Predicate<String> longer = s -> s.length() > limit;
+      limit = 5;
+    options:
+      - "A compile error: `limit` is used in the lambda, so it must be effectively final, but it is reassigned."
+      - "It compiles, and the lambda uses 3, the value at the time of creation."
+      - "It compiles, and the lambda uses 5, the latest value."
+      - "It compiles, but throws an exception when the lambda runs."
+    answer: 0
+    explanation: |
+      A lambda may only use local variables that are never reassigned (effectively final). The compiler reports the error at the use inside the lambda. The other options assume that the lambda keeps either a copy or a live link to the variable; Java prevents the question by not allowing the reassignment in the first place.
+  followUps:
+    - kind: multi
+      prompt: Which of these may a lambda do?
+      options:
+        - Read a local variable that is effectively final.
+        - Read a field of the surrounding object.
+        - Change a captured local `int` variable with `count++`.
+        - Assign a new value to a field of the surrounding object.
+      answer: [0, 1, 3]
+      explanation: |
+        The rule is about **local variables** (and parameters): they must stay effectively final, so `count++` on a captured local does not compile. Fields live in the object, not in the method's stack frame, and a lambda can read and change them.
+
+- id: lam-methodref-forms
+  unit: lambdas/method-references
+  main:
+    kind: single
+    prompt: "Which method reference is equivalent to the lambda `s -> s.toUpperCase()`?"
+    options:
+      - "`String::toUpperCase`"
+      - "`s::toUpperCase`"
+      - "`String::toUpperCase()`"
+      - "`String.toUpperCase`"
+    answer: 0
+    explanation: |
+      For the "arbitrary object of a type" kind, you write the class name, `::` and the method name **without parentheses**. The element becomes the object the method is called on. `s::toUpperCase` would need an existing variable `s`, parentheses would call the method instead of naming it, and a plain dot is no method reference.
+  followUps:
+    - kind: single
+      prompt: "Which kind of method reference is `Integer::parseInt` (equivalent to `s -> Integer.parseInt(s)`)?"
+      options:
+        - Static method
+        - Instance method of a particular object
+        - Instance method of an arbitrary object of a type
+        - Constructor
+      answer: 0
+      explanation: |
+        `parseInt` is a `static` method of `Integer`; the lambda parameter is passed to it as an argument. For `System.out::println`, the object is fixed (a particular object), and for `String::toUpperCase` the element itself is the object.
+    - kind: single
+      prompt: Which lambda can be replaced by a method reference?
+      options:
+        - "`s -> Integer.parseInt(s)`"
+        - "`s -> s.length() > 3`"
+        - "`s -> s.substring(1)`"
+        - "`s -> s + \"!\"`"
+      answer: 0
+      explanation: |
+        Only a lambda that does nothing but pass its parameters to one existing method qualifies. `s.length() > 3` and `s + "!"` are expressions, not single calls. `s.substring(1)` calls a method, but with an extra argument that the lambda parameter list does not provide.
+
+- id: lam-methodref-gaps
+  unit: lambdas/method-references
+  main:
+    kind: template
+    prompt: Complete the method references.
+    template: |
+      Function<String, Integer> parse = {{Integer}}::{{parseInt}};
+      Supplier<List<String>> factory = {{ArrayList}}::{{new}};
+      Consumer<String> print = {{System.out}}::println;
+    redHerrings:
+      - "String"
+      - "toInt"
+      - "System"
+      - "ArrayList()"
+    explanation: |
+      `Integer::parseInt` is a static method reference. `ArrayList::new` is a constructor reference: after `::` stands the keyword `new` without parentheses, and a `Supplier` needs no argument. `System.out::println` uses the particular object `System.out`; `System::println` does not exist, because `println` belongs to `System.out`, not to `System`.
+  followUps: []
+
+- id: lam-block-lambda
+  unit: lambdas/lambda-syntax
+  main:
+    kind: line
+    prompt: Build a lambda with a block body that compares two strings by length. One line is wrong.
+    lines:
+      - "Comparator<String> byLength = (a, b) -> {"
+      - "    return Integer.compare(a.length(), b.length());"
+      - "};"
+    redHerrings:
+      - "    Integer.compare(a.length(), b.length());"
+    explanation: |
+      A lambda with a block body behaves like a method body: it needs `return` to deliver a value. Without `return`, the block gives nothing back and does not match `Comparator`. The whole assignment ends with `};`, because the braces end the lambda and the semicolon ends the statement.
+  followUps: []
+
+- id: lam-expression-body
+  unit: lambdas/lambda-syntax
+  main:
+    kind: single
+    prompt: Which statement about the lambda `(a, b) -> a + b` is correct?
+    options:
+      - "It is an expression body: the value of `a + b` is returned automatically, and the compiler infers the parameter types from the target type."
+      - "It needs a `return` before `a + b`, because lambdas always have to return explicitly."
+      - "It needs `Integer a, Integer b`, because the compiler cannot infer parameter types."
+      - "It works without any functional interface, because it is just an expression."
+    answer: 0
+    explanation: |
+      An expression body returns its value implicitly, and `return` is only written in block bodies. The parameter types are inferred from the functional interface (target typing), for example `BinaryOperator<Integer>`. Without such a target type, the lambda has no meaning.
+  followUps: []

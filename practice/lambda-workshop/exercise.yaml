@@ -1,0 +1,6 @@
+id: lambda-workshop
+title: "Lambdas and method references: LambdaWorkshop"
+module: lambdas
+kind: core
+className: LambdaWorkshop
+published: true
