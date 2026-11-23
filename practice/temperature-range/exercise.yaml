@@ -1,0 +1,6 @@
+id: temperature-range
+title: "Record: TemperatureRange"
+module: modern-java-core
+kind: core
+className: TemperatureRange
+published: true
