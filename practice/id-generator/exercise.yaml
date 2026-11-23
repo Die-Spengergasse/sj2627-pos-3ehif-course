@@ -1,0 +1,6 @@
+id: id-generator
+title: "Singleton: IdGenerator"
+module: singleton
+kind: core
+className: IdGenerator
+published: true

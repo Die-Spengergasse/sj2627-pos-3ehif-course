@@ -1,0 +1,137 @@
+- id: singleton-ingredients
+  unit: singleton/singleton-basics
+  main:
+    kind: multi
+    prompt: Which are typical parts of a Singleton class?
+    options:
+      - A private constructor
+      - A static method that returns the instance
+      - A private static field that holds the instance
+      - A public constructor that checks whether an instance already exists
+      - The modifier `abstract` on the class
+    answer: [0, 1, 2]
+    explanation: |
+      The private constructor stops everybody else from calling `new`. The class keeps its only instance in a private static field and hands it out through a static method such as `getInstance()`. A public constructor cannot return an existing object (a constructor always creates a new one), and `abstract` would make instances impossible.
+  followUps:
+    - kind: single
+      prompt: What does this print?
+      code: |
+        var a = AppConfig.getInstance();
+        var b = AppConfig.getInstance();
+        System.out.println(a == b);
+      options:
+        - "true"
+        - "false"
+        - It does not compile.
+      answer: 0
+      explanation: |
+        Both calls return the same object, so the references are identical. If it printed `false`, the class would not be a Singleton.
+
+- id: singleton-classic-template
+  unit: singleton/singleton-basics
+  main:
+    kind: template
+    prompt: Complete the classic lazy Singleton.
+    template: |
+      public class Registry {
+          private static {{Registry}} instance;
+
+          {{private}} Registry() { }
+
+          public static Registry getInstance() {
+              if ({{instance == null}}) {
+                  instance = {{new Registry()}};
+              }
+              return instance;
+          }
+      }
+    redHerrings:
+      - "public"
+      - "instance != null"
+      - "Registry.getInstance()"
+    explanation: |
+      The field holds a `Registry`, and the constructor must be `private` so that nobody else can create instances. The instance is created only when none exists yet: `instance == null`. With `instance != null` the object would never be created, and `Registry.getInstance()` inside `getInstance()` would call itself forever.
+  followUps: []
+
+- id: singleton-race
+  unit: singleton/singleton-safety
+  main:
+    kind: single
+    prompt: Why is the naive lazy `getInstance()` (`if (instance == null) instance = new AppConfig();`) not thread-safe?
+    options:
+      - Two threads can both see `instance == null` before either has assigned it, so two objects are created.
+      - A static field cannot be read by more than one thread.
+      - The private constructor can only be called by the main thread.
+      - The `if` statement is not allowed in a static method.
+    answer: 0
+    explanation: |
+      Check and assignment are two separate steps. If thread B checks between the check and the assignment of thread A, both create an instance. Static fields can be read by any thread, and the constructor is callable from every thread inside the class.
+  followUps: []
+
+- id: singleton-double-checked
+  unit: singleton/singleton-safety
+  main:
+    kind: line
+    prompt: Put the lines of a thread-safe `getInstance()` (double-checked locking) in the correct order. One line is wrong.
+    lines:
+      - "public static AppConfig getInstance() {"
+      - "    if (instance == null) {"
+      - "        synchronized (AppConfig.class) {"
+      - "            if (instance == null) {"
+      - "                instance = new AppConfig();"
+      - "            }"
+      - "        }"
+      - "    }"
+      - "    return instance;"
+      - "}"
+    redHerrings:
+      - "        synchronized (this) {"
+    explanation: |
+      The outer check avoids locking once the instance exists. Inside the lock, the check is repeated, because another thread may have created the instance while we were waiting. In a **static** method there is no `this`; the lock must be an object that all threads share, such as `AppConfig.class`.
+  followUps:
+    - kind: single
+      prompt: What is the `volatile` modifier on the `instance` field for?
+      options:
+        - It makes sure other threads see a completely constructed object.
+        - It makes the field `final`.
+        - It replaces the `synchronized` block.
+        - It speeds up the creation of the object.
+      answer: 0
+      explanation: |
+        Without `volatile`, a thread could see the reference before the object is fully initialized. It does not replace `synchronized` (both are needed here), it does not make the field constant, and it does not speed anything up.
+
+- id: singleton-enum
+  unit: singleton/singleton-safety
+  main:
+    kind: single
+    prompt: Why is an enum with a single constant `INSTANCE` a good way to write a Singleton?
+    code: |
+      public enum AppConfig {
+          INSTANCE;
+
+          public String get(String key) { /* ... */ return null; }
+      }
+    options:
+      - Java creates each enum constant exactly once, even with many threads, so no locking code is needed.
+      - Every thread gets its own copy of the enum constant, so threads never interfere.
+      - Enums cannot have methods, so there is no shared state to protect.
+      - An enum has a public constructor that returns the same object.
+    answer: 0
+    explanation: |
+      The JVM guarantees that enum constants are instantiated once in a thread-safe way. Enums *can* have methods and fields (this one has a method), the constructor of an enum is always private, and there is no per-thread copy.
+  followUps: []
+
+- id: singleton-tradeoffs
+  unit: singleton/singleton-safety
+  main:
+    kind: multi
+    prompt: Which statements about the downsides of Singletons are true?
+    options:
+      - "It is global state: any class can reach it, so dependencies are hidden."
+      - Tests can influence each other if one test changes the state of the Singleton.
+      - Dependency injection, for example in Spring, is an alternative that passes the shared object in explicitly.
+      - A Singleton makes the program slower, because `getInstance()` is always synchronized.
+    answer: [0, 1, 2]
+    explanation: |
+      Because everybody can call `getInstance()`, the dependency does not show in constructors or method signatures, and state survives between tests. Passing the object in (dependency injection) keeps the dependency visible. The last statement is wrong: an enum or an eagerly created Singleton needs no locking on access, and double-checked locking only locks while the instance is created.
+  followUps: []
