@@ -1,0 +1,6 @@
+id: notifier-factory
+title: "Factory methods: Notifier"
+module: factory-method
+kind: core
+className: Notifier
+published: true

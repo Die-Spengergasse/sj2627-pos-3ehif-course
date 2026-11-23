@@ -1,0 +1,108 @@
+- id: factory-benefits
+  unit: factory-method/why-factory
+  main:
+    kind: multi
+    prompt: What can a static factory method do that a plain constructor call `new Circle(5)` cannot?
+    options:
+      - Return an object that already exists (for example a cached instance).
+      - Return an object of a subtype, chosen from the arguments.
+      - Have a descriptive name such as `Shape.circle(5)`.
+      - Reject invalid arguments with an exception.
+    answer: [0, 1, 2]
+    explanation: |
+      A constructor always creates a **new** object of **exactly its own class**, and its name is the class name. A factory method can return a shared or cached instance, a subtype, and can be named by intent. Rejecting invalid arguments is **not** a difference: a constructor can throw an exception just as well. (A factory method is still a good place to do it, because then the check happens in one place before any object is created.)
+  followUps:
+    - kind: single
+      prompt: Why does a caller that writes `Shape s = Shape.circle(5);` depend less on the implementation than one that writes `new Circle(5)`?
+      options:
+        - It only knows the `Shape` interface. The factory method may later return a different class without any caller changing.
+        - The object is created faster.
+        - The `Circle` class is deleted at compile time.
+      answer: 0
+      explanation: |
+        The caller depends on the abstraction `Shape`, not on `Circle`. Which concrete class is created is the factory method's decision. Speed is not the point, and `Circle` still exists.
+
+- id: factory-template
+  unit: factory-method/why-factory
+  main:
+    kind: template
+    prompt: Complete the interface so that callers get a `Vehicle` without knowing the class `Car`.
+    template: |
+      public {{interface}} Vehicle {
+          {{static}} {{Vehicle}} car(int seats) {
+              if (seats < 1) {
+                  throw new {{IllegalArgumentException}}("A car needs a seat");
+              }
+              return {{new Car(seats)}};
+          }
+      }
+    redHerrings:
+      - "class"
+      - "Car"
+      - "void"
+      - "Vehicle.car(seats)"
+    explanation: |
+      Factory methods in an interface are `static` methods with a body. The return type is the **abstraction** `Vehicle`: if it were `Car`, the caller would depend on the concrete class again. `void` returns nothing, and `Vehicle.car(seats)` would call the method itself endlessly. Invalid input is reported with an `IllegalArgumentException`.
+  followUps: []
+
+- id: factory-switch-lines
+  unit: factory-method/why-factory
+  main:
+    kind: line
+    prompt: Build a factory method that chooses the subtype of `Animal` by name. Two lines are wrong.
+    lines:
+      - "static Animal of(String kind) {"
+      - "    return switch (kind) {"
+      - "        case \"dog\" -> new Dog();"
+      - "        case \"cat\" -> new Cat();"
+      - "        default -> throw new IllegalArgumentException(\"Unknown: \" + kind);"
+      - "    };"
+      - "}"
+    redHerrings:
+      - "        case \"cat\" -> Cat();"
+      - "        default -> new IllegalArgumentException(\"Unknown: \" + kind);"
+    explanation: |
+      Objects are created with `new`, so `Cat()` alone does not compile. In the `default` branch the exception must be **thrown**: `new IllegalArgumentException(...)` without `throw` is just an object of the wrong type (an exception, not an `Animal`). The caller of `Animal.of("dog")` never sees the class `Dog`.
+  followUps: []
+
+- id: optional-no-constructor
+  unit: factory-method/factories-in-jdk
+  main:
+    kind: single
+    prompt: "`Optional.empty()` is called many times in a program. What is true?"
+    options:
+      - It can hand out one shared instance every time, whereas a constructor call always creates a new object.
+      - It creates a new `Optional` object on each call, like `new` would.
+      - It calls `new Optional<>()` internally, which you can call too.
+      - It returns `null` for an empty `Optional`.
+    answer: 0
+    explanation: |
+      The factory method controls creation, so it can return one shared `EMPTY` instance, while `new` always creates a new object. `Optional` has no public constructor, so you cannot call `new Optional<>()`. And it never returns `null`: that would defeat the purpose of `Optional`.
+  followUps:
+    - kind: single
+      prompt: What happens here?
+      code: |
+        List<String> names = List.of("Alice", "Bob");
+        names.add("Carol");
+      options:
+        - It compiles, but throws an `UnsupportedOperationException` at runtime.
+        - It compiles, and `names` now has three elements.
+        - It does not compile, because `List.of` returns a read-only type.
+      answer: 0
+      explanation: |
+        `List.of(...)` returns an immutable list. The static type is still `List<String>`, so the code compiles, but `add` throws at runtime.
+
+- id: factory-vs-singleton
+  unit: factory-method/factories-in-jdk
+  main:
+    kind: single
+    prompt: Which statement about factory methods is correct?
+    options:
+      - A factory method may return a new object on every call; returning a shared instance is possible, but not required.
+      - A factory method always returns the same instance, like a Singleton.
+      - A factory method must be called `getInstance()`.
+      - A factory method can only be declared in an interface.
+    answer: 0
+    explanation: |
+      The factory method decides what to return: a new object (`Integer.valueOf(1000)`), a shared one (`Optional.empty()`), or a subtype. Many factory methods have other names (`of`, `valueOf`), and they can be declared in any class or interface.
+  followUps: []
