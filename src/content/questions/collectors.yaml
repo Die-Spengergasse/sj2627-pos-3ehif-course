@@ -1,0 +1,183 @@
+- id: coll-tomap-duplicates
+  unit: collectors/collect-basics
+  main:
+    kind: single
+    prompt: What happens here?
+    code: |
+      Map<Integer, String> byLength = Stream.of("a", "bb", "c")
+          .collect(Collectors.toMap(String::length, s -> s));
+    options:
+      - "It throws an `IllegalStateException`, because the key 1 occurs twice."
+      - "It creates `{1=c, 2=bb}`; the later value replaces the earlier one."
+      - "It creates `{1=a, 2=bb}`; the first value wins."
+      - "It does not compile, because the keys are not unique."
+    answer: 0
+    explanation: |
+      `toMap` does not know what to do with two elements for the same key and throws an `IllegalStateException` ("Duplicate key 1"). It does not overwrite like `Map.put`, and the compiler cannot know the data. If keys can repeat, use `groupingBy`, which collects all values of a key.
+  followUps:
+    - kind: single
+      prompt: What does this expression produce?
+      code: |
+        Stream.of("a", "b", "c").collect(Collectors.joining("-", "<", ">"))
+      options:
+        - "`<a-b-c>`"
+        - "`a-b-c`"
+        - "`<a>-<b>-<c>`"
+        - "`-<a-b-c>-`"
+      answer: 0
+      explanation: |
+        The first argument of `joining` is the separator between the elements. The optional second and third arguments are a prefix and a suffix for the **whole** string, not for each element.
+
+- id: coll-toset
+  unit: collectors/collect-basics
+  main:
+    kind: single
+    prompt: What is the size of the resulting set?
+    code: |
+      Set<String> set = Stream.of("Java", "java", "JAVA")
+          .map(String::toLowerCase)
+          .collect(Collectors.toSet());
+    options:
+      - "1"
+      - "3"
+      - "0"
+      - "It depends on the order of the elements."
+    answer: 0
+    explanation: |
+      `map` makes all three elements `"java"` first, and a `Set` stores equal elements only once. Without the `map`, the three strings would differ and the size would be 3. The order of elements in a `HashSet` is unspecified, but the **number** of elements does not depend on it.
+  followUps: []
+
+- id: coll-grouping-types
+  unit: collectors/grouping-by
+  main:
+    kind: single
+    prompt: "What is the type of the result?"
+    code: |
+      var result = people.stream()
+          .collect(Collectors.groupingBy(Person::city, Collectors.counting()));
+    options:
+      - "`Map<String, Long>`"
+      - "`Map<String, Integer>`"
+      - "`Map<String, List<Person>>`"
+      - "`Map<Boolean, Long>`"
+    answer: 0
+    explanation: |
+      The key type comes from the classifier (`Person::city` is a `String`). The value type comes from the downstream collector, and `counting()` produces a `Long`. Without the second argument, the values would be `List<Person>`, and `Boolean` keys belong to `partitioningBy`.
+  followUps:
+    - kind: single
+      prompt: "What is the value type when you use `Collectors.averagingInt(Person::age)` as the downstream collector?"
+      options:
+        - "`Double`"
+        - "`Integer`"
+        - "`Long`"
+        - "`List<Integer>`"
+      answer: 0
+      explanation: |
+        An average is generally not a whole number, so `averagingInt` always returns a `Double`, even if the property is an `int`.
+    - kind: single
+      prompt: "What is the type of `groupingBy(Person::city, Collectors.mapping(Person::name, Collectors.toList()))`?"
+      options:
+        - "`Map<String, List<String>>`"
+        - "`Map<String, List<Person>>`"
+        - "`Map<String, String>`"
+        - "`Map<String, Long>`"
+      answer: 0
+      explanation: |
+        `mapping` first applies `Person::name` to each element of a group and then collects the results with `toList()`. So each group becomes a list of names, not of persons.
+
+- id: coll-grouping-gaps
+  unit: collectors/grouping-by
+  main:
+    kind: template
+    prompt: Count the people per city.
+    template: |
+      Map<String, {{Long}}> countByCity = people.stream()
+          .collect(Collectors.{{groupingBy}}(
+              Person::city,
+              Collectors.{{counting}}()
+          ));
+    redHerrings:
+      - "Integer"
+      - "partitioningBy"
+      - "count"
+      - "toMap"
+    explanation: |
+      `groupingBy` classifies by city, and the downstream collector `counting()` replaces the default list of each group with the number of elements. That number is a `Long`, so `Map<String, Integer>` would not compile. `count()` is a stream method, not a collector. `partitioningBy` is for yes/no questions, and `toMap` would fail on duplicate keys.
+  followUps: []
+
+- id: coll-mapping-lines
+  unit: collectors/grouping-by
+  main:
+    kind: line
+    prompt: Collect the names of the people per city. One line is wrong.
+    lines:
+      - "Map<String, List<String>> namesByCity = people.stream()"
+      - "    .collect(Collectors.groupingBy("
+      - "        Person::city,"
+      - "        Collectors.mapping(Person::name, Collectors.toList())"
+      - "    ));"
+    redHerrings:
+      - "        Collectors.mapping(Person::city, Collectors.toList())"
+    explanation: |
+      The classifier `Person::city` comes first, then the downstream collector. `mapping(Person::name, toList())` converts each person into a name before collecting; with `Person::city`, every group would only contain its own city name repeated. The last line closes `groupingBy`, `collect` and the statement.
+  followUps: []
+
+- id: coll-partition-keys
+  unit: collectors/partitioning-by
+  main:
+    kind: single
+    prompt: What does this code print?
+    code: |
+      System.out.println(
+          Stream.of(1, 2, 3, 4, 5)
+              .collect(Collectors.partitioningBy(n -> n > 5)));
+    options:
+      - "`{false=[1, 2, 3, 4, 5], true=[]}`"
+      - "`{false=[1, 2, 3, 4, 5]}`"
+      - "`{true=[], false=[1, 2, 3, 4, 5]}`"
+      - "`{}`"
+    answer: 0
+    explanation: |
+      `partitioningBy` always creates **both** keys, even if one of the groups is empty, and prints `false` before `true`. That is what makes it different from `groupingBy`, where a missing group has no key at all.
+  followUps:
+    - kind: single
+      prompt: "The same stream is collected with `Collectors.groupingBy(n -> n > 5)`. What does `.get(true)` return on the resulting map?"
+      options:
+        - "`null`, because no element produced the key `true`."
+        - "An empty list."
+        - "It throws a `NoSuchElementException`."
+        - "`false`"
+      answer: 0
+      explanation: |
+        `groupingBy` only creates keys that occur, so the map is `{false=[1, 2, 3, 4, 5]}`, and `get(true)` returns `null` like every `Map.get` for a missing key. With `partitioningBy`, you would get an empty list.
+
+- id: coll-which-collector
+  unit: collectors/partitioning-by
+  main:
+    kind: single
+    prompt: "You have a `List<Order>` and want to know the **number of orders per customer**. Which collector fits?"
+    options:
+      - "`groupingBy(Order::customer, counting())`"
+      - "`partitioningBy(o -> o.customer() != null)`"
+      - "`toMap(Order::customer, o -> 1)`"
+      - "`joining(\", \")`"
+    answer: 0
+    explanation: |
+      Number of elements per category is `groupingBy` with the downstream collector `counting()`. `partitioningBy` can only make two groups. `toMap` would throw an exception as soon as a customer has two orders (duplicate key), and `joining` builds a single string.
+  followUps: []
+
+- id: coll-which-map
+  unit: collectors/partitioning-by
+  main:
+    kind: multi
+    prompt: Which of these collectors produce a `Map`?
+    options:
+      - "`toMap(...)`"
+      - "`groupingBy(...)`"
+      - "`partitioningBy(...)`"
+      - "`joining(...)`"
+      - "`toSet()`"
+    answer: [0, 1, 2]
+    explanation: |
+      `toMap`, `groupingBy` and `partitioningBy` all return a `Map`: with one value per key, with a group per key, and with exactly the keys `true` and `false`. `joining` returns a `String` and `toSet()` a `Set`.
+  followUps: []

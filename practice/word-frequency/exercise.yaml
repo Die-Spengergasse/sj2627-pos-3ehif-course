@@ -1,0 +1,6 @@
+id: word-frequency
+title: "flatMap and Collectors: WordFrequency"
+module: collectors
+kind: bonus
+className: WordFrequency
+published: true

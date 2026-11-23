@@ -1,0 +1,6 @@
+id: sales-report
+title: "Collectors: SalesReport"
+module: collectors
+kind: core
+className: SalesReport
+published: true
