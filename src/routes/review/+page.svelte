@@ -23,7 +23,7 @@
 <dl class="stats">
 	<div><dt>Units</dt><dd>{units.length}</dd></div>
 	<div><dt>of which drafts</dt><dd>{drafts.length}</dd></div>
-	<div><dt>Fragengruppen</dt><dd>{units.reduce((n, u) => n + u.groups, 0)}</dd></div>
+	<div><dt>Question groups</dt><dd>{units.reduce((n, u) => n + u.groups, 0)}</dd></div>
 	<div><dt>Units without questions</dt><dd>{withoutQuestions.length}</dd></div>
 </dl>
 
@@ -37,7 +37,7 @@
 		{#each chapter.modules as m (m.slug)}
 			<h3>
 				<a href={resolve('/[module]', { module: m.slug })}>{m.title}</a>
-				<span class="count">{m.groups} Fragengruppen</span>
+				<span class="count">{m.groups} question groups</span>
 			</h3>
 			{#if m.units.length}
 				<table>

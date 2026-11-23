@@ -98,7 +98,7 @@
 <h1>{data.title}</h1>
 
 {#if !ready}
-	<p class="muted">Lade …</p>
+	<p class="muted">Loading …</p>
 {:else if result}
 	{@const s = result.score}
 	<section class="score" class:perfect={s.correct === s.total}>
@@ -165,7 +165,7 @@
 	<div class="nav">
 		<Button variant="secondary" disabled={run.index === 0} onclick={() => go(-1)}>Previous</Button>
 		{#if run.index < total - 1}
-			<Button onclick={() => go(1)}>Weiter</Button>
+			<Button onclick={() => go(1)}>Next</Button>
 		{:else}
 			<Button onclick={submit}>Submit round</Button>
 		{/if}

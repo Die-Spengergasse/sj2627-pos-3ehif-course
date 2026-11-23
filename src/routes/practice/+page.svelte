@@ -26,7 +26,7 @@
 	const all = $derived(stats(data.allIds));
 
 	const date = (iso: string) =>
-		new Date(iso).toLocaleDateString('de-AT', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+		new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
 </script>
 
 <svelte:head>
@@ -110,7 +110,7 @@
 {/each}
 
 {#if recent.length}
-	<h2>Letzte Runden</h2>
+	<h2>Recent rounds</h2>
 	<ul class="runs">
 		{#each recent as r (r.at)}
 			<li>

@@ -15,7 +15,7 @@
 	onclick={() => progress.setTheme(next)}
 >
 	<span class="icon" aria-hidden="true">{theme === 'light' ? '☀' : theme === 'dark' ? '☾' : '◐'}</span>
-	<span class="sr">Farbschema:</span>
+	<span class="sr">Colour scheme:</span>
 	{THEME_LABELS[theme]}
 </button>
 

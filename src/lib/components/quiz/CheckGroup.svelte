@@ -12,7 +12,7 @@
 		[group.main, ...group.followUps].map((question) => ({ question, answer: emptyAnswer(question), checked: false }));
 
 	let steps = $state<Step[]>(fresh());
-	// Bumped on "Nochmal" so puzzles start over with a new shuffle.
+	// Bumped on "Try again" so puzzles start over with a new shuffle.
 	let attempt = $state(0);
 
 	// Show the main question, and each follow-up once the question before it was checked.
@@ -47,7 +47,7 @@
 		{/each}
 	{/key}
 	{#if done}
-		<div class="actions"><Button variant="secondary" onclick={restart}>Nochmal</Button></div>
+		<div class="actions"><Button variant="secondary" onclick={restart}>Try again</Button></div>
 	{/if}
 </section>
 

@@ -25,13 +25,13 @@
 							{#each seg.submitted as s}
 								<span class="chip" class:ok={s.correct} class:bad={!s.correct}>{s.text}<b aria-hidden="true">{s.correct ? '✓' : '✕'}</b></span>
 							{:else}
-								<span class="none">leer</span>
+								<span class="none">empty</span>
 							{/each}
 						</span>
 						{#if !right(seg)}
 							<span class="expected">
 								<span class="label">right{seg.anyOrder ? ' (any order)' : ''}</span>
-								{#each seg.expected as e}<span class="chip want">{e}</span>{:else}<span class="none">leer lassen</span>{/each}
+								{#each seg.expected as e}<span class="chip want">{e}</span>{:else}<span class="none">leave empty</span>{/each}
 							</span>
 						{/if}
 					</span>

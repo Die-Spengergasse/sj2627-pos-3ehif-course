@@ -129,12 +129,12 @@
 
 	<section class="pool-box" aria-labelledby="pool-title">
 		<header>
-			<h2 id="pool-title">Bausteine</h2>
-			<span>∞ mehrfach verwendbar</span>
+			<h2 id="pool-title">Blocks</h2>
+			<span>∞ can be used more than once</span>
 		</header>
 		<div
 			class="pool"
-			aria-label="Bausteine"
+			aria-label="Blocks"
 			data-testid="pool"
 			use:dndzone={zone(board.pool)}
 			onconsider={considerPool}
@@ -144,7 +144,7 @@
 				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 				<span
 					class="chip"
-					aria-label={chip.reusable ? `${chip.text}, mehrfach verwendbar` : chip.text}
+					aria-label={chip.reusable ? `${chip.text}, can be used more than once` : chip.text}
 					onclick={() => commit(addToGap(board, chip.id, selected))}
 					onkeydown={(e) => onPoolKey(e, chip)}
 				>
