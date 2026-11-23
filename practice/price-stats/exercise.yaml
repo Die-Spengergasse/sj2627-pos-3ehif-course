@@ -1,0 +1,6 @@
+id: price-stats
+title: "Loops to streams: PriceStats"
+module: streams-intro
+kind: core
+className: PriceStats
+published: true

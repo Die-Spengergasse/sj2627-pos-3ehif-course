@@ -1,0 +1,167 @@
+- id: stin-what-is-stream
+  unit: streams-intro/what-is-a-stream
+  main:
+    kind: single
+    prompt: Which statement about a Java stream is correct?
+    options:
+      - It does not store elements; it processes the elements of a source such as a list.
+      - It is a new kind of collection that holds a copy of the elements.
+      - Operations like `filter` remove the elements from the source list.
+      - It can be traversed as often as you like, like a list.
+    answer: 0
+    explanation: |
+      A stream is not a data structure. It describes how to process the elements of a source, and the source itself stays unchanged. Because a stream is not a stored collection, it can be consumed only **once**; a second terminal operation on the same stream fails.
+  followUps:
+    - kind: single
+      prompt: What happens when you call a terminal operation on the same stream object a second time?
+      code: |
+        Stream<Integer> stream = Stream.of(1, 2);
+        stream.toList();
+        stream.toList();
+      options:
+        - It throws an `IllegalStateException` ("stream has already been operated upon or closed").
+        - It returns the same list again.
+        - It returns an empty list.
+        - It does not compile.
+      answer: 0
+      explanation: |
+        After a terminal operation, the stream is used up. The code compiles (the compiler does not track this), but the second call throws an `IllegalStateException`. If you need the data again, create a new stream with `source.stream()`.
+
+- id: stin-lazy
+  unit: streams-intro/what-is-a-stream
+  main:
+    kind: single
+    prompt: What does this code print?
+    code: |
+      Stream<String> pipeline = Stream.of("a", "bb")
+          .filter(x -> {
+              System.out.print(x + " ");
+              return true;
+          });
+      System.out.println("built");
+    options:
+      - "`built`"
+      - "`a bb built`"
+      - "`built a bb`"
+      - "`a bb`"
+    answer: 0
+    explanation: |
+      Intermediate operations such as `filter` are **lazy**: they only describe the work. Without a terminal operation like `toList()` or `count()`, the lambda is never called, so only `built` is printed. The wrong answers assume that `filter` runs immediately.
+  followUps:
+    - kind: multi
+      prompt: Which of these are terminal operations?
+      options:
+        - "`count()`"
+        - "`filter(...)`"
+        - "`forEach(...)`"
+        - "`map(...)`"
+        - "`toList()`"
+      answer: [0, 2, 4]
+      explanation: |
+        A terminal operation ends the pipeline and starts the work: `count()`, `forEach(...)` and `toList()`. `filter` and `map` are intermediate operations: they return a new stream and can be chained.
+
+- id: stin-pipeline-parts
+  unit: streams-intro/what-is-a-stream
+  main:
+    kind: template
+    prompt: Complete the pipeline. It keeps the strings that start with "A", turns them into upper case and returns a list.
+    template: |
+      List<String> result = list.{{stream}}()
+          .{{filter}}(s -> s.startsWith("A"))
+          .{{map}}(String::toUpperCase)
+          .{{toList}}();
+    redHerrings:
+      - "forEach"
+      - "of"
+      - "count"
+    explanation: |
+      The pipeline starts with the **source** `list.stream()`. `filter` keeps matching elements and `map` transforms each one; both are intermediate. `toList()` is the terminal operation that delivers the list. `forEach` is terminal too, but returns `void`, and `count()` returns a number, not a list.
+  followUps: []
+
+- id: stin-filter-map-count
+  unit: streams-intro/loops-to-streams
+  main:
+    kind: multi
+    prompt: Let `words` be a `List<String>` with the elements "a", "bb" and "ccc". Which pipelines produce a list with **three** elements?
+    options:
+      - "`words.stream().map(String::length).toList()`"
+      - "`words.stream().filter(w -> w.length() > 1).toList()`"
+      - "`words.stream().map(w -> w + \"!\").toList()`"
+      - "`words.stream().filter(w -> w.length() > 0).toList()`"
+    answer: [0, 2, 3]
+    explanation: |
+      `map` produces exactly one result per element, so the first and third pipeline have three elements (the first one even changes the type to `Integer`). `filter` removes elements: with `w.length() > 1` only two remain, but with `w.length() > 0` all three pass.
+  followUps: []
+
+- id: stin-loop-to-stream
+  unit: streams-intro/loops-to-streams
+  main:
+    kind: line
+    prompt: Rewrite the loop as a stream. First keep the words longer than 3 characters, then convert them to upper case, then collect them in a list. One line is wrong.
+    lines:
+      - "List<String> result = words.stream()"
+      - "    .filter(w -> w.length() > 3)"
+      - "    .map(String::toUpperCase)"
+      - "    .toList();"
+    redHerrings:
+      - "    .filter(String::toUpperCase)"
+    explanation: |
+      `filter` needs a condition (a `boolean`), so `filter(String::toUpperCase)` does not compile: it returns a `String`. The transformation to upper case belongs into `map`. The order is given by the task: filtering first, transforming second, and the terminal operation `toList()` last.
+  followUps:
+    - kind: single
+      prompt: What happens here?
+      code: |
+        List<Integer> even = numbers.stream().filter(n -> n % 2 == 0).toList();
+        even.add(4);
+      options:
+        - It throws an `UnsupportedOperationException`, because `toList()` returns an unmodifiable list.
+        - It adds 4 to the list `even` and to the list `numbers`.
+        - It does not compile, because streams produce no lists.
+        - It adds 4 to the list `even` only.
+      answer: 0
+      explanation: |
+        `toList()` (Java 16) returns an unmodifiable list. The compiler cannot see this, so the error shows at runtime. The stream never changes its source `numbers`. Use `new ArrayList<>(...)` if you need a list that you can modify.
+
+- id: stin-count-sum
+  unit: streams-intro/counting-summing-foreach
+  main:
+    kind: single
+    prompt: Which expression computes the sum of the elements of a `List<Integer> numbers`?
+    options:
+      - "`numbers.stream().mapToInt(n -> n).sum()`"
+      - "`numbers.stream().sum()`"
+      - "`numbers.stream().map(n -> n).sum()`"
+      - "`numbers.stream().count()`"
+    answer: 0
+    explanation: |
+      `sum()` exists only on primitive streams such as `IntStream`. `mapToInt` converts the `Stream<Integer>` into an `IntStream`. A normal `Stream<Integer>`, also after `map`, has no `sum()`. `count()` returns the number of elements, not their sum.
+  followUps:
+    - kind: single
+      prompt: Why does this line not compile?
+      code: |
+        int positives = numbers.stream().filter(n -> n > 0).count();
+      options:
+        - "`count()` returns a `long`, and a `long` does not fit into an `int` without a cast."
+        - "`count()` can only be used after `map`."
+        - "`filter` must be followed by `toList()`."
+        - "`count()` returns an `Optional<Integer>`."
+      answer: 0
+      explanation: |
+        Streams can be larger than `Integer.MAX_VALUE`, so `count()` returns a `long`. Assign it to a `long`, or cast: `(int) ...count()`. `count()` is a terminal operation and needs no `map` or `toList()`.
+
+- id: stin-foreach-result
+  unit: streams-intro/counting-summing-foreach
+  main:
+    kind: single
+    prompt: Why does this line not compile?
+    code: |
+      var printed = words.stream().forEach(System.out::println);
+    options:
+      - "`forEach` is a terminal operation that returns `void`, so there is no value for `var` to take."
+      - "`forEach` cannot be used with `System.out::println`."
+      - "`var` is not allowed with streams."
+      - "`forEach` returns a new stream, which must be declared as `Stream<String>`."
+    answer: 0
+    explanation: |
+      `forEach` ends the pipeline and returns nothing. With `void` as the initializer, `var` cannot infer a type. The method reference `System.out::println` is fine, and `var` itself is allowed with streams. Only intermediate operations return a new stream.
+  followUps: []
