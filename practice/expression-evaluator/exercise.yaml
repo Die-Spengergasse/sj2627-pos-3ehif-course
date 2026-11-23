@@ -1,0 +1,6 @@
+id: expression-evaluator
+title: "Sealed types and record patterns: ExpressionEvaluator"
+module: modern-java-extras
+kind: core
+className: ExpressionEvaluator
+published: true

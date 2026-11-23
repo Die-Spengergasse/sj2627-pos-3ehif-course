@@ -1,0 +1,256 @@
+- id: default-conflict
+  unit: modern-java-extras/default-static-methods
+  main:
+    kind: single
+    prompt: What does this print?
+    code: |
+      interface A { default String hi() { return "A"; } }
+      interface B { default String hi() { return "B"; } }
+
+      class C implements A, B {
+          public String hi() { return B.super.hi() + A.super.hi(); }
+      }
+
+      System.out.println(new C().hi());
+    options:
+      - "BA"
+      - "AB"
+      - "B"
+      - It does not compile, because both interfaces define `hi()`.
+    answer: 0
+    explanation: |
+      Because two defaults clash, `C` must override `hi()`, and it does. `X.super.hi()` calls the default method of the named interface, in the order written: first `B`, then `A`. The conflict is only a compile error if `C` does **not** override the method.
+  followUps:
+    - kind: single
+      prompt: What does `new Child().hi()` return?
+      code: |
+        class Base { public String hi() { return "Base"; } }
+        interface Friendly { default String hi() { return "Friendly"; } }
+        class Child extends Base implements Friendly {}
+      options:
+        - "Base"
+        - "Friendly"
+        - Nothing; `Child` does not compile because of the conflict.
+      answer: 0
+      explanation: |
+        The "class wins" rule: a method from a class (or superclass) beats a default method from an interface, so there is no conflict and no override is needed.
+
+- id: instanceof-scope
+  unit: modern-java-extras/instanceof-patterns
+  main:
+    kind: single
+    prompt: What do `length("abc")` and `length(42)` return?
+    code: |
+      static int length(Object obj) {
+          if (!(obj instanceof String s)) {
+              return -1;
+          }
+          return s.length();
+      }
+    options:
+      - "3 and -1"
+      - "-1 and -1"
+      - "3, and a `ClassCastException` for 42"
+      - The code does not compile, because `s` is not in scope after the `if`.
+    answer: 0
+    explanation: |
+      When `obj` is not a `String`, the method returns inside the `if`. So after the `if` the match must have succeeded, and the compiler lets you use `s`. No cast happens that could fail: the pattern only matches strings.
+  followUps:
+    - kind: single
+      prompt: Which condition does not compile?
+      options:
+        - "`obj instanceof String s && s.length() > 5`"
+        - "`obj instanceof String s || s.length() > 5`"
+        - "`!(obj instanceof String s) || s.isEmpty()`"
+      answer: 1
+      explanation: |
+        With `||`, the right side runs when the left side is **false**, that is, when `obj` is not a `String` and `s` has no value. With `&&` the right side runs only after a successful match. In the third condition the right side runs only when `!(...)` is false, so the match succeeded.
+
+- id: instanceof-record-pattern
+  unit: modern-java-extras/instanceof-patterns
+  main:
+    kind: template
+    prompt: Complete the test so that the components of a `Point` land in `x` and `y`.
+    template: |
+      if (obj {{instanceof}} {{Point}}({{int x}}, {{int y}})) {
+          System.out.println("x = " + x + ", y = " + y);
+      }
+    redHerrings:
+      - "instanceOf"
+      - "Point p"
+      - "(Point)"
+    explanation: |
+      The operator is written `instanceof` in lower case. The record pattern is the type followed by its components with types and names: `Point(int x, int y)`. `Point p` would only bind the whole object, so `x` and `y` would not exist, and a cast `(Point)` is not needed with patterns.
+  followUps: []
+
+- id: text-block-indent
+  unit: modern-java-extras/text-blocks-apis
+  main:
+    kind: single
+    prompt: "What is the value of `s`? (`\\n` stands for a line break.)"
+    code: |
+      String s = """
+              Hi
+                there
+              """;
+    options:
+      - "`Hi\\n  there\\n`"
+      - "`        Hi\\n          there\\n`"
+      - "`Hi\\nthere\\n`"
+      - "`Hi\\n  there`"
+    answer: 0
+    explanation: |
+      The common indentation (8 spaces, given by the lines and the closing delimiter) is removed, but the extra indentation of `there` (2 spaces) stays. The closing `"""` is on its own line, so the string ends with a line break.
+  followUps:
+    - kind: single
+      prompt: How do you get a text block that does **not** end with a line break?
+      options:
+        - Put the closing `"""` directly after the last text character, on the same line.
+        - Write the closing `"""` with less indentation.
+        - It is impossible; text blocks always end with a line break.
+      answer: 0
+      explanation: |
+        The final line break is part of the text only if the closing delimiter is on its own line. A different indentation of the delimiter changes how much whitespace is stripped, not the line break.
+
+- id: string-apis
+  unit: modern-java-extras/text-blocks-apis
+  main:
+    kind: multi
+    prompt: Which expressions are `true`?
+    options:
+      - "`\"  \".isBlank()`"
+      - "`\"  \".isEmpty()`"
+      - "`\"ab\".repeat(2).equals(\"abab\")`"
+      - "`\" x \".strip().equals(\"x\")`"
+    answer: [0, 2, 3]
+    explanation: |
+      `isBlank()` is true for a string that has only whitespace, but `isEmpty()` is true only for length 0, and `"  "` has length 2. `repeat(2)` joins the string twice, and `strip()` removes the whitespace at both ends.
+  followUps:
+    - kind: single
+      prompt: What does `Files.readString(Path.of("data.txt"))` return?
+      options:
+        - The whole content of the file as one `String`.
+        - A `List<String>` with one entry per line.
+        - Only the first line of the file.
+      answer: 0
+      explanation: |
+        `readString` reads the entire file into a single string. The counterpart `Files.writeString` writes a string to a file.
+
+- id: sealed-lines
+  unit: modern-java-extras/sealed-classes
+  main:
+    kind: line
+    prompt: Declare a sealed `Payment` hierarchy and a switch that needs no `default`. Write the interface first, then `Card`, then `Cash`, then the method; the cases in the same order as the `permits` list. Two lines are wrong.
+    lines:
+      - "public sealed interface Payment permits Card, Cash {}"
+      - "record Card(String number) implements Payment {}"
+      - "final class Cash implements Payment {}"
+      - "double fee(Payment p) {"
+      - "    return switch (p) {"
+      - "        case Card c -> 0.5;"
+      - "        case Cash c -> 0.0;"
+      - "    };"
+      - "}"
+    redHerrings:
+      - "public sealed interface Payment extends Card, Cash {}"
+      - "class Cash implements Payment {}"
+    explanation: |
+      The permitted subtypes are listed with `permits`, not `extends`. Every permitted subclass must be `final`, `sealed` or `non-sealed`: a plain `class` is rejected (a record is implicitly final). Because the compiler knows that `Card` and `Cash` are all subtypes, the switch is exhaustive without `default`.
+  followUps:
+    - kind: single
+      prompt: A permitted subclass of a sealed class must be declared with exactly one of these modifiers.
+      options:
+        - "`final`, `sealed` or `non-sealed`"
+        - "`abstract`, `static` or `private`"
+        - "`final`, `abstract` or `protected`"
+      answer: 0
+      explanation: |
+        `final` closes the hierarchy, `sealed` restricts it further, and `non-sealed` opens it again. The other modifiers do not say how the hierarchy continues.
+
+- id: unnamed-valid
+  unit: modern-java-extras/unnamed-variables
+  main:
+    kind: multi
+    prompt: Which uses of the unnamed variable `_` are valid?
+    options:
+      - "`catch (IOException _) { log(\"failed\"); }`"
+      - "`for (var _ : names) { count++; }`"
+      - "`int _ = 5; System.out.println(_);`"
+      - "`if (o instanceof Point(int x, int _)) { use(x); }`"
+    answer: [0, 1, 3]
+    explanation: |
+      `_` can replace the name of a variable that is declared but never used: in `catch`, in a loop, or in a pattern. You cannot **read** it, because it has no name, so `System.out.println(_)` does not compile.
+  followUps:
+    - kind: single
+      prompt: What does this return for `"hi"`?
+      code: |
+        String r = switch (obj) {
+            case Integer _ -> "number";
+            case String _ -> "text";
+            default -> "other";
+        };
+      options:
+        - "text"
+        - "other"
+        - "hi"
+      answer: 0
+      explanation: |
+        The `case String _` branch tests only the type, so it matches `"hi"`. The matched value is simply not bound to a name.
+
+- id: flexible-constructor
+  unit: modern-java-extras/flexible-constructors
+  main:
+    kind: single
+    prompt: What is true for this code in Java 25?
+    code: |
+      class Base { Base(String name) { } }
+
+      class Child extends Base {
+          Child(String name) {
+              if (name == null) {
+                  throw new IllegalArgumentException("name");
+              }
+              super(name.strip());
+          }
+      }
+    options:
+      - It compiles, and the check runs before the constructor of `Base`.
+      - It does not compile, because `super(...)` must be the first statement.
+      - It compiles, but the check runs after the constructor of `Base`.
+      - It does not compile, because a constructor must not `throw`.
+    answer: 0
+    explanation: |
+      Flexible constructor bodies allow statements before `super(...)` as long as they do not use the instance being constructed. The check uses only the parameter. Before Java 25, `super(...)` had to be the first statement (Java 22–24 had this only as a preview feature).
+  followUps:
+    - kind: single
+      prompt: Which statement is **not** allowed before `super(...)`?
+      options:
+        - "Reading an instance field: `System.out.println(this.name);`"
+        - "Declaring a local variable: `var copy = name.strip();`"
+        - "Calling a static method: `check(name);`"
+        - "Throwing an exception: `throw new IllegalArgumentException();`"
+      answer: 0
+      explanation: |
+        Before `super(...)` the object is not constructed yet, so `this`, instance fields and instance methods cannot be used. Local variables, static methods and `throw` do not depend on the instance.
+
+- id: compact-source
+  unit: modern-java-extras/compact-source-files
+  main:
+    kind: single
+    prompt: "The file `Counter.java` contains only the following code. What is true?"
+    code: |
+      int counter = 0;
+
+      void main() {
+          counter++;
+          System.out.println(counter);
+      }
+    options:
+      - "It is a valid compact source file: the compiler wraps it in an implicit class, `counter` is a field and `main` an instance method."
+      - It does not compile, because fields must be declared inside a class.
+      - It does not compile, because `main` must be `static` and take `String[] args`.
+      - It compiles, but `counter` can never be changed because it is not `final`.
+    answer: 0
+    explanation: |
+      Since Java 25, a source file may contain methods and fields without a class. The compiler puts them into an implicit class, and `main` may be an instance method without parameters. The usual requirements apply only to the classic form.
+  followUps: []
