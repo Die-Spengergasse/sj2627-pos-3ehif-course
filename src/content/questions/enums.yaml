@@ -1,0 +1,184 @@
+- id: constants-declaration
+  unit: enums/constants
+  main:
+    kind: multi
+    prompt: Which declarations define a proper class constant?
+    options:
+      - "`public static final int MAX_RETRIES = 3;`"
+      - "`private static final String KEY = \"timeout\";`"
+      - "`public static int MAX_RETRIES = 3;`"
+      - "`public final int MAX_RETRIES = 3;`"
+    answer: [0, 1]
+    explanation: |
+      A constant needs `static` (one shared value per class) **and** `final` (assigned only once). Without `final`, anybody can change the value. Without `static`, every object would carry its own copy and you could not use it as `Config.MAX_RETRIES`.
+  followUps:
+    - kind: single
+      prompt: Which name follows the Java convention for a constant?
+      options:
+        - "`MAX_RETRIES`"
+        - "`maxRetries`"
+        - "`MaxRetries`"
+        - "`max_retries`"
+      answer: 0
+      explanation: |
+        Constants are written in `UPPER_SNAKE_CASE`. `maxRetries` is the style for ordinary variables and fields, `MaxRetries` for classes.
+
+- id: constant-interface
+  unit: enums/constants
+  main:
+    kind: single
+    prompt: Why is a "constant interface" considered an anti-pattern?
+    code: |
+      interface Constants {
+          int MAX_RETRIES = 3;
+      }
+
+      class Client implements Constants { /* ... */ }
+    options:
+      - The constants leak into the public API of every implementing class, although they are just an implementation detail.
+      - Interface fields cannot be read from other classes.
+      - Interface constants are not `final`, so they can be changed.
+      - A class may implement only one interface.
+    answer: 0
+    explanation: |
+      Implementing an interface only to get short names makes `Client` publicly "be a" `Constants`, and its subclasses inherit the names too. A normal constants class with a static import gives the same convenience without this. Interface fields are in fact implicitly `public static final`, so the other options are wrong, and a class can implement many interfaces.
+  followUps: []
+
+- id: enum-vs-int
+  unit: enums/enum-basics
+  main:
+    kind: single
+    prompt: "What is the main advantage of `enum OrderStatus { PENDING, SHIPPED, DELIVERED }` over three `int` constants?"
+    options:
+      - The compiler only accepts the three valid values, and printing shows a name instead of a number.
+      - It uses less memory than an `int`.
+      - It allows additional values to be added at runtime.
+      - It makes the code run faster.
+    answer: 0
+    explanation: |
+      With `int` constants, `status = 42` compiles although it is meaningless. An enum is a type with a closed set of instances, so the compiler rejects everything else. The new values cannot be added at runtime (the set is fixed at compile time), and memory or speed are not the point.
+  followUps:
+    - kind: single
+      prompt: What does `OrderStatus.valueOf("shipped")` do, if the constant is declared as `SHIPPED`?
+      options:
+        - It throws an `IllegalArgumentException`, because names are case-sensitive.
+        - It returns `OrderStatus.SHIPPED`.
+        - It returns `null`.
+        - It returns the constant with `ordinal()` 1.
+      answer: 0
+      explanation: |
+        `valueOf` needs the exact name. For an unknown name it does not return `null`, it throws an `IllegalArgumentException`.
+
+- id: enum-values-loop
+  unit: enums/enum-basics
+  main:
+    kind: single
+    prompt: What does this code print?
+    code: |
+      enum Size { SMALL, MEDIUM, LARGE }
+
+      for (Size s : Size.values()) {
+          System.out.print(s.ordinal() + s.name().substring(0, 1) + " ");
+      }
+    options:
+      - "0S 1M 2L"
+      - "1S 2M 3L"
+      - "SMALL MEDIUM LARGE"
+      - "S0 M1 L2"
+    answer: 0
+    explanation: |
+      `values()` returns the constants in declaration order, and `ordinal()` counts from **0**. `name().substring(0, 1)` is the first letter. Since `ordinal()` is an `int` and the second operand a `String`, the `+` concatenates: `0` followed by `S`.
+  followUps: []
+
+- id: enum-switch-exhaustive
+  unit: enums/enum-basics
+  main:
+    kind: single
+    prompt: What happens here?
+    code: |
+      enum Light { RED, YELLOW, GREEN }
+
+      String action(Light light) {
+          return switch (light) {
+              case RED -> "stop";
+              case GREEN -> "go";
+          };
+      }
+    options:
+      - It does not compile, because `YELLOW` is not covered and there is no `default`.
+      - It compiles; for `YELLOW` the method returns `null`.
+      - It compiles; for `YELLOW` a `MatchException` is thrown at runtime.
+      - It does not compile, because enum constants must be written as `Light.RED` in a `case`.
+    answer: 0
+    explanation: |
+      A switch **expression** must be exhaustive. For an enum, the compiler checks that every constant is covered (or that a `default` exists). The simple names `RED` and `GREEN` are exactly how you write the labels. Adding a constant to an enum later makes every such switch fail to compile, which shows you the places to update.
+  followUps:
+    - kind: single
+      prompt: Which change makes the switch compile?
+      options:
+        - Adding `case YELLOW -> "wait";`
+        - Adding a `break;` after each branch
+        - Changing `->` to `:`
+      answer: 0
+      explanation: |
+        Covering `YELLOW` makes the switch exhaustive. `break` is not used with the arrow form, and the colon form does not make the switch more complete.
+
+- id: enum-fields-template
+  unit: enums/enum-members
+  main:
+    kind: template
+    prompt: Complete the enum so that every constant knows its factor.
+    template: |
+      public {{enum}} Size {
+          SMALL(1), LARGE(3){{;}}
+
+          private {{final}} int factor;
+
+          {{Size}}(int factor) {
+              this.factor = factor;
+          }
+      }
+    redHerrings:
+      - "class"
+      - "static"
+      - "public Size"
+      - ","
+    explanation: |
+      An enum is declared with `enum`, not `class`. As soon as it has fields or methods, the list of constants must be closed with a **semicolon**. The field is `final`, because it is set once in the constructor; `static` would make it shared by all constants. The constructor is named like the enum and has no `public`: enum constructors are implicitly private, and a `public` one would not compile.
+  followUps:
+    - kind: single
+      prompt: Can other code create an additional instance with `new Size(5)`?
+      options:
+        - No. The constructor is implicitly private; only the declared constants exist.
+        - Yes, as long as the constructor takes a matching `int`.
+        - Yes, but only inside the same package.
+      answer: 0
+      explanation: |
+        An enum is a closed set of instances. Its constructor is always private, so the declared constants are the only objects that will ever exist.
+
+- id: enum-per-constant-lines
+  unit: enums/enum-members
+  main:
+    kind: line
+    prompt: Build an enum whose constants each provide their own `limit()`. Two lines are wrong.
+    lines:
+      - "public enum Level {"
+      - "    LOW { public int limit() { return 10; } },"
+      - "    HIGH { public int limit() { return 100; } };"
+      - "    public abstract int limit();"
+      - "}"
+    redHerrings:
+      - "public class Level {"
+      - "    public int limit();"
+    explanation: |
+      The enum is declared with `enum`. Each constant has its own body in curly braces; the constants are separated by commas and the list ends with a semicolon, because members follow. The method is declared `abstract`, so the compiler forces every constant to implement it. A method without a body and without `abstract` does not compile.
+  followUps:
+    - kind: single
+      prompt: What happens if you add a third constant `MEDIUM` without a body?
+      options:
+        - It does not compile, because `MEDIUM` does not implement the abstract method `limit()`.
+        - It compiles; `limit()` of `MEDIUM` returns 0.
+        - It compiles; calling `MEDIUM.limit()` throws at runtime.
+      answer: 0
+      explanation: |
+        An abstract method must be implemented by every constant. The compiler reports the missing implementation, so you cannot forget one. There is no default return value for abstract methods.

@@ -1,0 +1,6 @@
+id: coin-enum
+title: "Enum with fields: Coin"
+module: enums
+kind: core
+className: Coin
+published: true

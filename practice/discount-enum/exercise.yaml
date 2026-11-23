@@ -1,0 +1,6 @@
+id: discount-enum
+title: "Enum with per-constant behavior: Discount"
+module: enums
+kind: core
+className: Discount
+published: true
