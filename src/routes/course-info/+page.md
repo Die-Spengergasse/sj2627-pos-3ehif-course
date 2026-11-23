@@ -10,36 +10,13 @@
 
 # Course info
 
-Welcome to POS (Programming and Software Engineering) in the 3rd grade of HIF! This page sums up what this year is about, how you are graded and what you need to set up. The slides of the first lesson are <a href={deckUrl('00_Introduction')} target="_blank" rel="noopener">here</a>.
+Welcome to POS (Programming and Software Engineering) in the 3rd grade of HIF! This page sums up what this year is about and what you need to set up. The slides of the first lesson are <a href={deckUrl('00_Introduction')} target="_blank" rel="noopener">here</a>.
 
 ## Our goals
 
 - Moving towards **modern Java**
 - Creating our first complex(ish) software
 - Thinking about **software design**
-
-## Grading
-
-POS consists of two parts. **You must be positive in both of them.**
-
-| Part | Weight |
-|---|---|
-| Programming / Software Engineering | 75 % |
-| Logic | 25 % |
-
-In Programming / SE, your grade is made up of:
-
-| | Weight |
-|---|---|
-| PLÜs (practical exams) | 50 % |
-| Mitarbeit (participation) | 50 % |
-
-**Mitarbeit** includes:
-
-- practical exercises
-- revisions
-- active participation in class
-- the WMC project, which replaces the 4th PLÜ
 
 :::remember
 This site helps you revise and practise. It does not replace working along in class.

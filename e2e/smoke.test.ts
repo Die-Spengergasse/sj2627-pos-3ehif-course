@@ -91,7 +91,6 @@ test('course info page loads', async ({ page }) => {
 	await hydrated(page);
 	await expect(page).toHaveTitle(/Course info/);
 	await expect(page.getByRole('heading', { level: 1, name: 'Course info' })).toBeVisible();
-	await expect(page.getByRole('heading', { level: 2, name: 'Grading' })).toBeVisible();
 	await expect(page.getByRole('heading', { level: 2, name: 'Exercises: set up once' })).toBeVisible();
 	await expect(page.getByText('https://github.com/Die-Spengergasse/sj2627-pos-3ehif-course-materials')).toBeVisible();
 	await expect(page.getByRole('main').getByRole('link', { name: 'Constants & Enums', exact: true })).toBeVisible();
