@@ -1,0 +1,207 @@
+- id: var-valid
+  unit: modern-java-core/var
+  main:
+    kind: multi
+    prompt: Which lines compile? Assume they are inside a method.
+    options:
+      - "var count = 42;"
+      - "var names = new ArrayList<String>();"
+      - "var x;"
+      - "var y = null;"
+    answer: [0, 1]
+    explanation: |
+      `var` needs a value whose type the compiler can determine. `42` is an `int`, and `new ArrayList<String>()` an `ArrayList<String>`. `var x;` has no value at all, and `null` has no usable type.
+  followUps:
+    - kind: single
+      prompt: Where can you use `var`?
+      options:
+        - For local variables inside a method, including loop variables
+        - For fields of a class
+        - For method parameters and return types
+        - Everywhere a type is expected
+      answer: 0
+      explanation: |
+        `var` is **local variable** type inference. Fields, parameters and return types always need an explicit type.
+
+- id: var-static-typing
+  unit: modern-java-core/var
+  main:
+    kind: single
+    prompt: What happens here?
+    code: |
+      var message = "Hello";
+      message = 42;
+    options:
+      - It does not compile, because `message` is a `String`.
+      - It compiles; `message` now holds the number 42.
+      - It compiles, but throws an exception at runtime.
+    answer: 0
+    explanation: |
+      `var` does not make Java dynamically typed. The compiler infers `String` from `"Hello"`, and a `String` variable cannot hold an `int`.
+  followUps: []
+
+- id: record-generated
+  unit: modern-java-core/records
+  main:
+    kind: multi
+    prompt: "What does Java generate for `public record Person(String name, int age) {}`?"
+    options:
+      - "A constructor `Person(String name, int age)`"
+      - "Accessors `name()` and `age()`"
+      - "`equals`, `hashCode` and `toString`"
+      - "Setters `setName(...)` and `setAge(...)`"
+      - "Getters `getName()` and `getAge()`"
+    answer: [0, 1, 2]
+    explanation: |
+      A record gets a constructor with all components, one accessor per component (named like the component, **without** `get`), and value-based `equals`, `hashCode` and `toString`. There are no setters: records are immutable.
+  followUps:
+    - kind: single
+      prompt: What does this print?
+      code: |
+        record Point(int x, int y) {}
+
+        var p = new Point(3, 4);
+        var q = new Point(3, 4);
+        System.out.println(p.equals(q) + " " + p);
+      options:
+        - "true Point[x=3, y=4]"
+        - "false Point[x=3, y=4]"
+        - "true Point@1b6d3586"
+        - "false Point@1b6d3586"
+      answer: 0
+      explanation: |
+        Records compare their **values**, so two points with the same coordinates are equal. The generated `toString` lists the components: `Point[x=3, y=4]`.
+
+- id: record-compact-constructor
+  unit: modern-java-core/records
+  main:
+    kind: template
+    prompt: Complete the record so that a negative price is rejected.
+    template: |
+      public {{record}} Product(String name, double price) {
+
+          public {{Product}} {
+              if ({{price < 0}}) {
+                  throw new {{IllegalArgumentException}}("Negative price");
+              }
+          }
+      }
+    redHerrings:
+      - "class"
+      - "Product(String name, double price)"
+      - "this.price < 0"
+      - "NullPointerException"
+    explanation: |
+      A record is declared with `record`. The **compact constructor** has no parameter list: just `public Product { … }`. Inside it, the components are available as `price`; the fields are assigned automatically afterwards, so `this.price` does not exist yet. Invalid arguments are signalled with an `IllegalArgumentException`.
+  followUps:
+    - kind: single
+      prompt: You need an object whose state changes over time, e.g. a bank account with a balance. Is a record a good fit?
+      options:
+        - No. Records are immutable; use a normal class.
+        - Yes. Records generate setters for every component.
+        - Yes, if you declare the components as `public`.
+      answer: 0
+      explanation: |
+        Records are immutable data carriers: their fields are `final` and there are no setters. State that changes belongs in a normal class.
+
+- id: optional-of-nullable
+  unit: modern-java-core/optional
+  main:
+    kind: single
+    prompt: "`numbers.get(name)` returns `null` for an unknown name. How do you wrap the result?"
+    options:
+      - "`Optional.ofNullable(numbers.get(name))`"
+      - "`Optional.of(numbers.get(name))`"
+      - "`Optional.empty(numbers.get(name))`"
+      - "`new Optional<>(numbers.get(name))`"
+    answer: 0
+    explanation: |
+      `ofNullable` returns an empty `Optional` for `null`. `Optional.of(null)` throws a `NullPointerException`, `empty()` takes no argument, and `Optional` has no public constructor.
+  followUps:
+    - kind: single
+      prompt: What does this print if no email is found?
+      code: |
+        Optional<String> email = findEmail("zoe");
+        System.out.println(email.orElse("unknown"));
+      options:
+        - "unknown"
+        - "null"
+        - "Optional.empty"
+        - Nothing; a `NoSuchElementException` is thrown.
+      answer: 0
+      explanation: |
+        `orElse` returns the value if there is one, otherwise the given default.
+
+- id: optional-practices
+  unit: modern-java-core/optional
+  main:
+    kind: multi
+    prompt: Which are good practices for `Optional`?
+    options:
+      - Use it as the return type of a method that may find nothing.
+      - Prefer `orElse`, `orElseGet` or `orElseThrow` over `get()`.
+      - Use it as the type of a field.
+      - Use it as a method parameter for optional arguments.
+    answer: [0, 1]
+    explanation: |
+      `Optional` is meant as a **return type** that tells the caller "maybe missing". Fields and parameters should not be `Optional`. `get()` throws on an empty `Optional`, so the `orElse…` methods are safer.
+  followUps: []
+
+- id: switch-arrow
+  unit: modern-java-core/switch-expressions
+  main:
+    kind: line
+    prompt: Build a switch expression that returns `"Weekend"` for `SATURDAY` and `SUNDAY` and `"Work day"` otherwise. Two lines are wrong.
+    lines:
+      - "var type = switch (day) {"
+      - "    case SATURDAY, SUNDAY -> \"Weekend\";"
+      - "    default -> \"Work day\";"
+      - "};"
+    redHerrings:
+      - "    case SATURDAY: case SUNDAY: \"Weekend\";"
+      - "}"
+    explanation: |
+      With the arrow syntax, several labels share one branch (`case SATURDAY, SUNDAY ->`) and each branch yields a value. Because the whole `switch` is the right-hand side of an assignment, it ends with `};`. The colon form `case …:` does not yield a value like this.
+  followUps:
+    - kind: single
+      prompt: What is true for a switch expression with arrows?
+      options:
+        - Only the matching branch runs; there is no fall-through.
+        - You need `break` at the end of every branch.
+        - Missing cases are allowed; the result is then `null`.
+      answer: 0
+      explanation: |
+        Arrow branches never fall through, so no `break` is needed. A switch expression must be **exhaustive**: every possible value needs a branch, otherwise it does not compile.
+
+- id: switch-patterns
+  unit: modern-java-core/switch-expressions
+  main:
+    kind: single
+    prompt: What does `describe("hi")` return?
+    code: |
+      String describe(Object obj) {
+          return switch (obj) {
+              case Integer i -> "Integer: " + i;
+              case String s -> "String of length " + s.length();
+              case null -> "null value";
+              default -> "Unknown";
+          };
+      }
+    options:
+      - "String of length 2"
+      - "Unknown"
+      - "String: hi"
+      - It does not compile, because `obj` is an `Object`.
+    answer: 0
+    explanation: |
+      `case String s` matches because `"hi"` is a `String`, and binds it to `s`, which is already typed as `String`: no cast needed.
+  followUps:
+    - kind: single
+      prompt: What does `describe(null)` return?
+      options:
+        - "null value"
+        - "Unknown"
+        - It throws a `NullPointerException`.
+      answer: 0
+      explanation: |
+        The explicit `case null` handles `null`. Without it, a `switch` over `null` throws a `NullPointerException`; `default` does not catch `null`.

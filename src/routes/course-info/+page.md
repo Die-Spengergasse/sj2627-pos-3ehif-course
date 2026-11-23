@@ -1,45 +1,53 @@
 <script>
 	import { resolve } from '$app/paths';
 	import { CHAPTERS, MODULES, deckUrl } from '#lib/content/modules.js';
+	import { MATERIALS_REPO_URL } from '#lib/content/links.js';
 </script>
 
 <svelte:head>
-	<title>Kursinfo · POS 3EHIF · Learning Site</title>
+	<title>Course info · POS 3EHIF · Learning Site</title>
 </svelte:head>
 
-# Kursinfo
+# Course info
 
-Willkommen in POS (Programmieren und Software Engineering) in der 1. Klasse HIF! Hier findest du, worum es in diesem Jahr geht, wie du benotet wirst und was du für den Einstieg brauchst. Die Folien zur ersten Stunde findest du <a href={deckUrl('00_Einfuehrung')} target="_blank" rel="noopener">hier</a>.
+Welcome to POS (Programming and Software Engineering) in the 3rd grade of HIF! This page sums up what this year is about, how you are graded and what you need to set up. The slides of the first lesson are <a href={deckUrl('00_Introduction')} target="_blank" rel="noopener">here</a>.
 
-## Unsere Ziele
+## Our goals
 
-- Erste Schritte in der Programmierung mit **Java**
-- Grundlegende Konzepte des Programmierens verstehen
-- Freude daran entwickeln, Probleme mit Code zu lösen
+- Moving towards **modern Java**
+- Creating our first complex(ish) software
+- Thinking about **software design**
 
-## Bewertung
+## Grading
 
-Deine Note setzt sich aus zwei gleich großen Teilen zusammen:
+POS consists of two parts. **You must be positive in both of them.**
 
-| Teil | Anteil |
+| Part | Weight |
 |---|---|
-| PLÜs | 50 % |
-| Mitarbeit | 50 % |
+| Programming / Software Engineering | 75 % |
+| Logic | 25 % |
 
-Zur **Mitarbeit** zählen:
+In Programming / SE, your grade is made up of:
 
-- praktische Übungen
-- Wiederholungen
-- aktive Mitarbeit im Unterricht
-- deine Mitschrift
+| | Weight |
+|---|---|
+| PLÜs (practical exams) | 50 % |
+| Mitarbeit (participation) | 50 % |
+
+**Mitarbeit** includes:
+
+- practical exercises
+- revisions
+- active participation in class
+- the WMC project, which replaces the 4th PLÜ
 
 :::remember
-Die Übungsaufgaben bekommst du im Unterricht. Diese Lernseite hilft dir beim Wiederholen und Festigen, ersetzt aber nicht die Mitarbeit.
+This site helps you revise and practise. It does not replace working along in class.
 :::
 
-## Kursinhalte
+## Course topics
 
-Das lernen wir in diesem Jahr, in der Reihenfolge des Unterrichts:
+This is what we cover this year, grouped by topic:
 
 {#each CHAPTERS as chapter (chapter.slug)}
 
@@ -47,26 +55,49 @@ Das lernen wir in diesem Jahr, in der Reihenfolge des Unterrichts:
 
 <ul>
 	{#each MODULES.filter((m) => m.chapter === chapter.slug) as m (m.slug)}
-		<li><a href={resolve('/[module]', { module: m.slug })}>{m.title}</a></li>
+		<li>
+			<a href={resolve('/[module]', { module: m.slug })}>{m.title}</a>{#if m.bonus}&nbsp;(bonus){/if}{#if m.placeholder}&nbsp;(coming soon){/if}
+		</li>
 	{/each}
 </ul>
 
 {/each}
 
-## Setup: J;DE
+## Setup
 
-Verwende [**J;DE**](https://github.com/mfreimueller/jide/releases/) zum Programmieren. Das Programm läuft unter Windows und braucht keine Administrator-Rechte. Ein **JDK** (Java Development Kit) ist schon eingebaut, du musst also nichts anderes installieren.
+You need these tools for this course. Set them up before the next lesson.
 
-1. Starte den Installer, den du [hier](https://github.com/mfreimueller/jide/releases/) bekommst.
-2. Beim ersten Start zeigt Windows (SmartScreen) vielleicht eine Warnung. Klicke auf "Weitere Informationen" und dann auf "Trotzdem ausführen".
-3. Melde dich mit deinem persönlichen Code an, den du von deiner Lehrkraft bekommst.
-
-Mit **▶ Ausführen** startest du dein Programm, mit **■ Stopp** beendest du es. Fehler zeigt dir J;DE schon beim Tippen an, die Liste **Probleme** nennt sie dir im Detail.
+- **IntelliJ IDEA**: our IDE.
+- **JDK 27**: in IntelliJ, open **File → Project Structure → SDKs**, click **+** and choose **Download JDK** (version 27, vendor *Eclipse Temurin*). Alternatively, install it from [Adoptium](https://adoptium.net) or with SDKMAN (`sdk list java` shows the available versions).
+- **Gradle**: nothing to install. Every project brings its own Gradle (the `gradlew` wrapper), and IntelliJ uses it automatically.
+- **Git** and a **GitHub account**.
 
 :::remember
-Alles, was du für den Einstieg brauchst, ist J;DE. Weitere Programme brauchst du in diesem Jahr nicht.
+If JDK 27 is missing, Gradle downloads it by itself the first time you open a project. That takes a few minutes, so do it at home, not at the start of a lesson.
 :::
 
-## Wie geht es weiter?
+## Exercises: set up once
 
-Beginne mit <a href={resolve('/[module]', { module: 'was-ist-programmieren' })}>Was ist Programmieren?</a>. Wie die Lernseite funktioniert, steht unter <a href={resolve('/how-it-works')}>So funktioniert die Lernseite</a>.
+All exercises of this site live in one Gradle project on GitHub. You clone it once; new exercises arrive with an update.
+
+1. In IntelliJ: **File → New → Project from Version Control**.
+2. Paste this URL and click **Clone**:
+   <code>{MATERIALS_REPO_URL}</code>
+3. If IntelliJ asks whether you trust the project, choose **Trust Project**.
+4. Wait until Gradle has finished importing (progress bar at the bottom right). The first time, this takes a while.
+
+Then, for every exercise on this site:
+
+1. Click **Copy class name** on the exercise.
+2. In IntelliJ press <kbd>Shift</kbd> <kbd>Shift</kbd>, paste and press <kbd>Enter</kbd>. The class opens; the task is at the top.
+3. Solve the task. Run the tests with the green ▶ next to the test class (`<ClassName>Test`). When all tests are green, you are done.
+
+New exercises: **Git → Update Project** (<kbd>Ctrl</kbd>+<kbd>T</kbd> / <kbd>⌘</kbd>+<kbd>T</kbd>). Your own changes stay; published exercises never change, so the update never conflicts with your work.
+
+:::warning Can't clone?
+Every exercise also has a **Download as zip** link. Unzip it and open the folder in IntelliJ (**File → Open**). You then have to download each exercise separately, so cloning is the better way.
+:::
+
+## What's next?
+
+Start with <a href={resolve('/[module]', { module: 'modern-java-core' })}>var, Records, Optional & switch</a>. How this site works is explained under <a href={resolve('/how-it-works')}>How this site works</a>.

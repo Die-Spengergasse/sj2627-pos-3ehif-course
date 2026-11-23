@@ -1,0 +1,6 @@
+id: ticket-price
+title: "Switch expression: TicketPrices"
+module: modern-java-core
+kind: core
+className: TicketPrices
+published: true

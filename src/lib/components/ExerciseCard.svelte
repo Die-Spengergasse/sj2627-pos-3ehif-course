@@ -15,9 +15,9 @@
 	}: { slug: string; title: string; kind: 'core' | 'bonus'; className: string; children: Snippet } = $props();
 
 	const testClass = $derived(`${className}Test`);
-	// The zips are generated into static/practice/ when the build starts, so asset()'s list of known
+	// The zips are generated into static/exercises/ when the build starts, so asset()'s list of known
 	// static files (from svelte-kit sync) may not include them yet.
-	const zip = $derived(asset(`/practice/${slug}.zip` as Parameters<typeof asset>[0]));
+	const zip = $derived(asset(`/exercises/${slug}.zip` as Parameters<typeof asset>[0]));
 	const done = $derived(progress.isDone(slug));
 	/** Text of the role="status" region: visible feedback and screen reader announcement in one. */
 	let message = $state('');
@@ -148,13 +148,6 @@
 	}
 	.steps li + li {
 		margin-top: 4px;
-	}
-	kbd {
-		padding: 0 5px;
-		border: 1px solid var(--border-strong);
-		border-radius: 4px;
-		font: 12px var(--font-mono);
-		color: var(--text);
 	}
 	footer {
 		display: flex;

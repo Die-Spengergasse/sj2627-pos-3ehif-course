@@ -122,3 +122,12 @@
 	font-size: 14px;
 	color: var(--text-muted);
 }
+
+/* Keys, e.g. <kbd>Shift</kbd> in setup instructions. */
+.prose kbd {
+	padding: 0 5px;
+	border: 1px solid var(--border-strong);
+	border-radius: 4px;
+	font: 0.85em var(--font-mono);
+	white-space: nowrap;
+}

@@ -5,13 +5,13 @@ import { loadExercises } from './exercises.ts';
 import { zipBytes, zipTree } from './generate.ts';
 
 /**
- * Validates `practice/` and writes `static/practice/<slug>.zip` (standalone Gradle project) for every
+ * Validates `practice/` and writes `static/exercises/<slug>.zip` (standalone Gradle project) for every
  * published exercise when `vite dev` / `vite build` starts, before SvelteKit copies `static/`.
  * Invalid exercises fail the build.
  */
 export function buildZips(root: string): string[] {
 	const exercises = loadExercises(root).filter((e) => e.published);
-	const target = join(root, 'static', 'practice');
+	const target = join(root, 'static', 'exercises');
 	mkdirSync(target, { recursive: true });
 	const wanted = new Set(exercises.map((e) => `${e.slug}.zip`));
 	for (const name of readdirSync(target)) if (!wanted.has(name)) rmSync(join(target, name));

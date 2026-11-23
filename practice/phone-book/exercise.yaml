@@ -1,0 +1,6 @@
+id: phone-book
+title: "Optional: PhoneBook"
+module: modern-java-core
+kind: core
+className: PhoneBook
+published: true

@@ -1,0 +1,6 @@
+id: shape-area
+title: "Pattern matching: AreaCalculator"
+module: modern-java-core
+kind: bonus
+className: AreaCalculator
+published: true
