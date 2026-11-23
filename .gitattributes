@@ -1,0 +1,5 @@
+# Gradle template files are copied byte for byte into the materials repo and the zips.
+# gradlew.bat must keep CRLF (cmd.exe mishandles labels in LF batch files), gradlew must keep LF.
+practice/_template/gradlew.bat -text
+practice/_template/gradlew text eol=lf
+*.jar binary
