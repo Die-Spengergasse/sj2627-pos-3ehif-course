@@ -1,0 +1,175 @@
+- id: stim-filter-map-order
+  unit: streams-intermediate/filter-map
+  main:
+    kind: single
+    prompt: What is the result of this pipeline?
+    code: |
+      List.of(5, 12, 8, 20, 3).stream()
+          .filter(n -> n > 7)
+          .map(n -> n / 2)
+          .toList();
+    options:
+      - "`[6, 4, 10]`"
+      - "`[12, 8, 20]`"
+      - "`[2, 6, 4, 10, 1]`"
+      - "`[10]`"
+    answer: 0
+    explanation: |
+      `filter` runs first and keeps 12, 8 and 20. Then `map` halves each of them: 6, 4, 10. `[12, 8, 20]` forgets the `map`, and `[2, 6, 4, 10, 1]` forgets the `filter`.
+  followUps:
+    - kind: single
+      prompt: What is the result if you swap the two steps (first `map(n -> n / 2)`, then `filter(n -> n > 7)`)?
+      options:
+        - "`[10]`"
+        - "`[6, 4, 10]`"
+        - "`[12, 8, 20]`"
+        - "`[]`"
+      answer: 0
+      explanation: |
+        Now the filter sees the halved values 2, 6, 4, 10, 1, and only 10 is greater than 7. The order of intermediate operations matters, because each step works on the result of the previous one.
+
+- id: stim-null-filter
+  unit: streams-intermediate/filter-map
+  main:
+    kind: single
+    prompt: "A list contains a `Person` whose `name()` is `null`. What happens?"
+    code: |
+      List<Person> named = people.stream()
+          .filter(p -> !p.name().isEmpty())
+          .filter(p -> p.name() != null)
+          .toList();
+    options:
+      - It throws a `NullPointerException`, because the `null` check comes too late.
+      - The person is silently removed by the second filter.
+      - It does not compile, because `name()` could be `null`.
+      - The person is kept, because `null` is not empty.
+    answer: 0
+    explanation: |
+      Every element runs through the filters one after the other. For the person with the `null` name, the first filter already calls `isEmpty()` on `null` and fails. Swap the filters, and the `null` check protects the second one: an element rejected by the first filter never reaches the second. The compiler does not track `null`.
+  followUps: []
+
+- id: stim-flatmap-words
+  unit: streams-intermediate/flatmap
+  main:
+    kind: single
+    prompt: "Which expression creates a `List<String>` with all the words of the `List<String> lines`? A word is separated by one space."
+    options:
+      - "`lines.stream().flatMap(l -> Arrays.stream(l.split(\" \"))).toList()`"
+      - "`lines.stream().map(l -> l.split(\" \")).toList()`"
+      - "`lines.stream().flatMap(l -> l.split(\" \")).toList()`"
+      - "`lines.stream().filter(l -> l.split(\" \")).toList()`"
+    answer: 0
+    explanation: |
+      `split` returns an array, and `flatMap` needs a function that returns a **stream**, so `Arrays.stream(...)` is needed. The second option compiles, but gives a `List<String[]>`: one array per line. The third does not compile, because an array is not a stream, and `filter` in the fourth needs a `boolean`.
+  followUps:
+    - kind: single
+      prompt: "`sentences` is `List.of(\"a b c\", \"d e\")`. How many elements does `sentences.stream().flatMap(s -> Arrays.stream(s.split(\" \"))).count()` count?"
+      options:
+        - "5"
+        - "2"
+        - "3"
+        - "0"
+      answer: 0
+      explanation: |
+        `flatMap` joins the words of all sentences into one stream: a, b, c, d, e, that is 5 elements. With `map` instead, the stream would contain 2 elements (one array per sentence), which is where the answer 2 comes from.
+
+- id: stim-flatmap-gaps
+  unit: streams-intermediate/flatmap
+  main:
+    kind: template
+    prompt: Flatten the list of lists into one list of numbers.
+    template: |
+      List<List<Integer>> nested = List.of(List.of(1, 2), List.of(3, 4));
+
+      List<Integer> flat = nested.stream()
+          .{{flatMap}}({{List::stream}})
+          .{{toList}}();
+    redHerrings:
+      - "map"
+      - "List::size"
+      - "forEach"
+    explanation: |
+      Each inner list must become a stream (`List::stream`), and `flatMap` joins these streams into one. With `map`, you would get a `List<Stream<Integer>>`. `List::size` turns each list into a number, which is not a stream, and `forEach` is terminal and returns nothing.
+  followUps: []
+
+- id: stim-reduce-empty
+  unit: streams-intermediate/foreach-reduce
+  main:
+    kind: single
+    prompt: "`List<Integer> empty = List.of();` What is the value of `empty.stream().reduce(Integer::max)`?"
+    options:
+      - "`Optional.empty`, because there is no element and no start value."
+      - "`0`, the default value of `int`."
+      - "A `NoSuchElementException` is thrown."
+      - "`null`"
+    answer: 0
+    explanation: |
+      `reduce` with only a function has no start value, so for an empty stream it has no result. That is why it returns an `Optional`, and here it is empty. No exception is thrown (that would only happen if you called `get()` on the empty `Optional`), and the result is never `null`.
+  followUps:
+    - kind: single
+      prompt: "You compute a product with `numbers.stream().reduce(identity, (a, b) -> a * b)`. Which identity is right?"
+      options:
+        - "`1`"
+        - "`0`"
+        - "`numbers.size()`"
+        - "`-1`"
+      answer: 0
+      explanation: |
+        The identity must not change the result of the operation. Multiplying by `1` changes nothing, so `1` is the identity of a product. With `0`, every product would be 0. (For a sum, the identity is `0`.)
+
+- id: stim-reduce-types
+  unit: streams-intermediate/foreach-reduce
+  main:
+    kind: multi
+    prompt: "`numbers` is a `List<Integer>`. Which lines compile?"
+    options:
+      - "`int total = numbers.stream().reduce(0, (a, b) -> a + b);`"
+      - "`Optional<Integer> max = numbers.stream().reduce(Integer::max);`"
+      - "`int max = numbers.stream().reduce(Integer::max);`"
+      - "`Optional<Integer> total = numbers.stream().reduce(0, Integer::sum);`"
+    answer: [0, 1]
+    explanation: |
+      With an identity (first argument), `reduce` returns a plain value: there is always a result, even for an empty stream. Without an identity, it returns an `Optional`, which cannot be assigned to an `int`. So the third line and the fourth line fail, each because the result type does not match.
+  followUps: []
+
+- id: stim-pipeline-order
+  unit: streams-intermediate/filter-map
+  main:
+    kind: line
+    prompt: Build a pipeline that returns the names of all adults. First filter (age at least 18), then map to the name, then `toList()`. One line is wrong.
+    lines:
+      - "List<String> names = people.stream()"
+      - "    .filter(p -> p.age() >= 18)"
+      - "    .map(Person::name)"
+      - "    .toList();"
+    redHerrings:
+      - "    .forEach(Person::name)"
+    explanation: |
+      The task fixes the order: `filter` selects the adults, `map(Person::name)` turns each `Person` into a `String`, and `toList()` ends the pipeline. `forEach` is terminal and returns `void`; it would end the pipeline early and give no list to return.
+  followUps: []
+
+- id: stim-foreach-collect
+  unit: streams-intermediate/foreach-reduce
+  main:
+    kind: single
+    prompt: Which version is the better way to collect the long names into a list?
+    code: |
+      // Version A
+      List<String> result = new ArrayList<>();
+      names.stream()
+          .filter(n -> n.length() > 3)
+          .forEach(n -> result.add(n));
+
+      // Version B
+      List<String> result = names.stream()
+          .filter(n -> n.length() > 3)
+          .toList();
+    options:
+      - "Version B: `toList()` builds the result inside the pipeline, with no outside state."
+      - "Version A: `forEach` is the only way to build a list."
+      - "Both are equally good; `toList()` is just an alias for `forEach`."
+      - "Version A, because `toList()` cannot be combined with `filter`."
+    answer: 0
+    explanation: |
+      Version A modifies a list **outside** the pipeline, which is the loop bookkeeping that streams should remove (and it is unsafe for parallel streams). `forEach` is meant for actions such as printing, not for building results. `toList()` is its own terminal operation and works after any number of intermediate operations.
+  followUps: []

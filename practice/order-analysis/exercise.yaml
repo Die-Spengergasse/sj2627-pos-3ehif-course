@@ -1,0 +1,6 @@
+id: order-analysis
+title: "filter, map, flatMap, reduce: OrderAnalysis"
+module: streams-intermediate
+kind: core
+className: OrderAnalysis
+published: true
