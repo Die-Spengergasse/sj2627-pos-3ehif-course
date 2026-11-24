@@ -1,0 +1,6 @@
+id: string-calculator
+title: "TDD: StringCalculator"
+module: tdd
+kind: core
+className: StringCalculator
+published: true

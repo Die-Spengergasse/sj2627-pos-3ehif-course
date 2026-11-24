@@ -1,0 +1,243 @@
+- id: tdd-cycle-order
+  unit: tdd/the-cycle
+  main:
+    kind: single
+    prompt: In which order do you work in one lap of the TDD cycle?
+    options:
+      - "Write a failing test, make it pass with the simplest code, refactor."
+      - "Write the code, write a test for it, refactor."
+      - "Write a failing test, refactor, make it pass."
+      - "Refactor, write a failing test, make it pass."
+    answer: 0
+    explanation: |
+      Red (failing test), Green (simplest code that passes), Refactor (clean up with all tests green). Writing the code first is exactly what TDD avoids. Refactoring while a test is red does not work, because you can no longer tell whether a change broke something: refactoring is only safe on a green bar.
+  followUps:
+    - kind: single
+      prompt: Why do you run a new test and watch it fail before you write the production code?
+      options:
+        - "To prove that the test can detect the missing behavior."
+        - "Because the compiler requires a failing test before it accepts new code."
+        - "To measure how long the failing test takes."
+        - "Because JUnit only counts tests that failed at least once."
+      answer: 0
+      explanation: |
+        A test you have never seen fail might be unable to fail at all (missing assertion, wrong condition). The red bar shows that the test notices the missing feature. Neither the compiler nor JUnit care about the order in which tests passed or failed.
+
+- id: tdd-green-minimal
+  unit: tdd/the-cycle
+  main:
+    kind: single
+    prompt: |
+      This is the only test so far. What is the best Green step?
+    code: |
+      @Test
+      void threeIsFizz() {
+          assertThat(FizzBuzz.of(3)).isEqualTo("Fizz");
+      }
+    options:
+      - "`return \"Fizz\";`"
+      - "A full implementation with Fizz, Buzz and FizzBuzz."
+      - "`return n % 3 == 0 ? \"Fizz\" : \"Buzz\";`"
+      - "Nothing; first write more tests."
+    answer: 0
+    explanation: |
+      Green means the simplest code that makes the failing test pass. Here that is a constant. The next test (for example `1` giving `"1"`) will force the generalization. The full implementation and the ternary add behavior that no test demands yet, and writing more tests before you turn the bar green means you have several red tests at once.
+  followUps: []
+
+- id: tdd-refactor-allowed
+  unit: tdd/the-cycle
+  main:
+    kind: multi
+    prompt: Which of these belong in the Refactor phase?
+    options:
+      - "Renaming a variable to a clearer name."
+      - "Extracting a repeated expression into a method."
+      - "Adding a new feature that the next test will need."
+      - "Removing duplication between two test methods."
+    answer: [0, 1, 3]
+    explanation: |
+      Refactoring changes structure, not behavior, and it applies to production code and to tests. A new feature changes behavior, so it needs a failing test first (back to Red). While you refactor, all tests must stay green.
+  followUps:
+    - kind: single
+      prompt: What do you do when a test turns red during a refactoring step?
+      options:
+        - "Undo the last change (or fix it) before you do anything else."
+        - "Change the test until it passes again."
+        - "Delete the test, because refactoring should not change tests."
+        - "Continue refactoring and fix all red tests at the end."
+      answer: 0
+      explanation: |
+        A red bar during refactoring means that you changed behavior. The small step you just made is the culprit, so undo it. Adapting the test to the new behavior hides the problem, and collecting red tests makes it hard to find out which change broke what.
+
+- id: tdd-fizzbuzz-lines
+  unit: tdd/fizzbuzz-step-by-step
+  main:
+    kind: line
+    prompt: Put the final implementation of `FizzBuzz.of` in order. The combined case must be checked first. One line does not belong.
+    lines:
+      - "static String of(int n) {"
+      - "    if (n % 15 == 0) return \"FizzBuzz\";"
+      - "    if (n % 3 == 0) return \"Fizz\";"
+      - "    if (n % 5 == 0) return \"Buzz\";"
+      - "    return String.valueOf(n);"
+      - "}"
+    redHerrings:
+      - "    if (n % 3 == 0 && n % 5 == 0) return \"Fizz\";"
+    explanation: |
+      15 is divisible by 3 **and** by 5, so the check for 15 has to come before the checks for 3 and 5. Otherwise `of(15)` returns `"Fizz"` and the test for `"FizzBuzz"` stays red. The decoy line combines both conditions but returns `"Fizz"`, which is the wrong text for this case.
+  followUps: []
+
+- id: tdd-parameterized
+  unit: tdd/fizzbuzz-step-by-step
+  main:
+    kind: template
+    prompt: Merge the five similar FizzBuzz tests into one parameterized test.
+    template: |
+      @{{ParameterizedTest}}
+      @{{CsvSource}}({"1,1", "2,2", "3,Fizz", "5,Buzz", "15,FizzBuzz"})
+      void fizzBuzz(int input, String expected) {
+          assertThat(FizzBuzz.of(input)).{{isEqualTo}}(expected);
+      }
+    redHerrings:
+      - "Test"
+      - "ValueSource"
+      - "contains"
+    explanation: |
+      `@ParameterizedTest` replaces `@Test` when a method gets its arguments from a source, and `@CsvSource` supplies one row per run, with the columns converted to `int` and `String`. `@ValueSource` can only supply a single value per run, so it cannot carry input and expected result. A plain `@Test` method with parameters would fail, because JUnit has nobody to supply them. `contains` would also accept `"FizzBuzz"` for the expected `"Fizz"`; `isEqualTo` checks the whole string.
+  followUps:
+    - kind: single
+      prompt: You add the row `"10,Buzz"` and it is green immediately. What does that tell you?
+      options:
+        - "The behavior already existed; the row adds confidence but did not drive new code."
+        - "The test is wrong, because every test must be red first."
+        - "You must delete the row, because it breaks TDD."
+        - "The test is not independent."
+      answer: 0
+      explanation: |
+        More examples of behavior that already works are fine as a safety net. The red-first rule is for **new behavior**. The row is not wrong, but you should not count it as a TDD lap. If you want to be sure that the row can fail, break the code on purpose once.
+
+- id: first-meaning
+  unit: tdd/first
+  main:
+    kind: multi
+    prompt: Which of these tests violate a FIRST property?
+    options:
+      - |-
+        `@Test void loads() { assertThat(new HttpClient().get("https://example.org")).isNotNull(); }`
+      - |-
+        `@Test void isMonday() { assertThat(LocalDate.now().getDayOfWeek()).isEqualTo(DayOfWeek.MONDAY); }`
+      - |-
+        `@Test void total() { System.out.println(new Cart().total()); }`
+      - |-
+        `@Test void emptyCartIsFree() { assertThat(new Cart().total()).isEqualTo(0); }`
+    answer: [0, 1, 2]
+    explanation: |
+      The first test needs the network: slow, and it fails when the server is down (Fast, Repeatable). The second depends on today's date, so it passes only on Mondays (Repeatable). The third has no assertion; a human has to read the console (Self-validating), and it is green even if `total()` returns nonsense. The last test is fast, fresh and checks its result.
+  followUps:
+    - kind: single
+      prompt: What does the "T" in FIRST stand for?
+      options:
+        - "Timely: write the tests just before the production code."
+        - "Trivial: tests should only test trivial things."
+        - "Typed: tests must use static types."
+        - "Tested: every test is tested again."
+      answer: 0
+      explanation: |
+        Tests written first shape the design and protect against code nobody needs. Tests added weeks later face code that is already hard to test.
+
+- id: first-independent
+  unit: tdd/first
+  main:
+    kind: single
+    prompt: |
+      These tests pass when run together in the written order, but one fails when run alone or in reverse order. Which property is violated, and why?
+    code: |
+      class CounterTest {
+          private static final Counter counter = new Counter();
+
+          @Test void firstIncrementGivesOne() {
+              assertThat(counter.increment()).isEqualTo(1);
+          }
+
+          @Test void secondIncrementGivesTwo() {
+              counter.increment();
+              assertThat(counter.increment()).isEqualTo(2);
+          }
+      }
+    options:
+      - "Independent: the static `counter` is shared, so the result depends on test order."
+      - "Fast: static fields make the tests slower."
+      - "Self-validating: there are two assertions."
+      - "Timely: the tests were written after the class."
+    answer: 0
+    explanation: |
+      Both tests change the same static `Counter`, so each one sees what the other left behind. The fix is a normal field (JUnit creates a new test instance per method) or a `@BeforeEach` that creates a fresh `Counter`. Static fields have no effect on speed, and the number of assertions is not what makes a test self-validating.
+  followUps: []
+
+- id: first-fresh-objects
+  unit: tdd/first
+  main:
+    kind: template
+    prompt: Give every test a fresh `Cart`.
+    template: |
+      class CartTest {
+          private Cart cart;
+
+          @{{BeforeEach}}
+          void setUp() {
+              cart = {{new}} Cart();
+          }
+
+          @Test
+          void startsEmpty() {
+              assertThat(cart.size()).isEqualTo(0);
+          }
+      }
+    redHerrings:
+      - "BeforeAll"
+      - "static"
+      - "this"
+    explanation: |
+      `@BeforeEach` runs before **every** test method, so each test starts with its own new `Cart`. `@BeforeAll` runs only once for the whole class and would share one object between all tests, which is the opposite of independent. `static` on the field has the same problem.
+  followUps: []
+
+- id: double-kinds
+  unit: tdd/isolating-tests
+  main:
+    kind: single
+    prompt: |
+      The `Cart` takes a `PriceService`. In the test you pass `product -> 250` as the service. What is this object?
+    options:
+      - "A stub: it provides a fixed answer so the test does not need a real price source."
+      - "A mock: it verifies that `priceCents` was called."
+      - "The class under test."
+      - "A flaky test."
+    answer: 0
+    explanation: |
+      A stub only supplies answers. A mock additionally records the calls so that the test can verify them (with Mockito: `verify(...)`). The lambda records nothing, so it is a stub. The class under test is `Cart`.
+  followUps:
+    - kind: multi
+      prompt: Which statements about test doubles are correct?
+      options:
+        - "They let a unit test run without a database or network."
+        - "The class under test should get its dependency from outside, for example via the constructor."
+        - "You should mock the class under test, so that the test is as fast as possible."
+        - "Prefer asserting on results; use `verify` when the call itself is the outcome."
+      answer: [0, 1, 3]
+      explanation: |
+        Doubles replace slow or uncontrollable collaborators, and they only work if the class can receive them from outside. Mocking the class under test means you test the mock and not your code. Many `verify` calls tie a test to the implementation, so use them only when the interaction is the observable result (for example "a mail was sent").
+
+- id: tdd-pitfalls
+  unit: tdd/isolating-tests
+  main:
+    kind: multi
+    prompt: Which of these are common TDD pitfalls?
+    options:
+      - "Writing too much code in the Green phase."
+      - "Skipping the Refactor phase."
+      - "Writing one test per behavior."
+      - "Running the tests only once a day."
+    answer: [0, 1, 3]
+    explanation: |
+      Extra code in Green is code no test demands. Without Refactor the code degrades, and rare test runs make a failure hard to trace back to a change. One test per behavior is the opposite of a pitfall: oversized tests that check many things at once are the problem, because a failure does not tell you what broke.
+  followUps: []
