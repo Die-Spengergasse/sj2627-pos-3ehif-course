@@ -1,0 +1,6 @@
+id: recipe-book
+title: "Rich Domain: Recipe"
+module: good-code-style
+kind: core
+className: Recipe
+published: true
