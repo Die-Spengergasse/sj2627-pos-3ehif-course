@@ -1,0 +1,206 @@
+- id: junit-aaa-order
+  unit: junit/first-test
+  main:
+    kind: single
+    prompt: "In which order do the three parts of a unit test belong?"
+    options:
+      - "Arrange, Act, Assert"
+      - "Act, Arrange, Assert"
+      - "Assert, Act, Arrange"
+      - "Arrange, Assert, Act"
+    answer: 0
+    explanation: |
+      First you prepare objects and input (arrange), then you call the one thing you test (act), and only then you compare the result with the expectation (assert). Asserting before the call has nothing to compare, and the other orders do not follow the Given/When/Then idea.
+  followUps:
+    - kind: single
+      prompt: "Which test name is best?"
+      options:
+        - "`divisionByZeroIsRejected`"
+        - "`test1`"
+        - "`testDivide`"
+        - "`exceptionTest`"
+      answer: 0
+      explanation: |
+        A good name says what is expected, so a red test explains itself in the result tree. `test1`, `testDivide` and `exceptionTest` only say that something is tested, not what the right behaviour is.
+
+- id: junit-test-method
+  unit: junit/first-test
+  main:
+    kind: multi
+    prompt: "Which statements about a JUnit Jupiter test method are true?"
+    options:
+      - "It is marked with `@Test`."
+      - "It returns `void`."
+      - "It takes no parameters (unless it is parameterized)."
+      - "It must be `public` and `static`."
+      - "It must return a `boolean` that says whether the test passed."
+    answer: [0, 1, 2]
+    explanation: |
+      A test is a `void` method with `@Test` and no parameters. Package-private is fine, and it is not static: JUnit creates an instance of the class for it. A test does not return its result; it passes if no assertion fails and no exception escapes.
+  followUps: []
+
+- id: junit-happy-edge
+  unit: junit/first-test
+  main:
+    kind: single
+    prompt: "`divide(int x, int y)` should throw an `ArithmeticException` when `y` is 0. What kind of test checks this?"
+    options:
+      - "An edge-case test: it checks that the method fails as expected."
+      - "A happy-path test, because the exception is the expected result."
+      - "No test is needed, because Java throws the exception anyway."
+      - "A lifecycle test, because it needs `@BeforeEach`."
+    answer: 0
+    explanation: |
+      The happy path covers normal input; bad input and borders are edge cases, and "fails in the expected way" is one of them. Even if the JDK throws by itself, a test documents and protects the behaviour. `@BeforeEach` has nothing to do with the kind of case.
+  followUps: []
+
+- id: assertj-gaps
+  unit: junit/assertj
+  main:
+    kind: template
+    prompt: "Check that the list has exactly the names Alice and Bob, in this order."
+    template: |
+      assertThat(people)
+          .{{extracting}}(Person::name)
+          .{{containsExactly}}("Alice", "Bob");
+    redHerrings:
+      - "contains"
+      - "map"
+      - "containsExactlyInAnyOrder"
+    explanation: |
+      `extracting` maps each person to its name, then `containsExactly` checks the elements and their order. `contains` would also pass for `[Bob, Alice, Carl]`, and `containsExactlyInAnyOrder` ignores the order. `map` is a stream method, not an AssertJ check.
+  followUps: []
+
+- id: assertj-contains
+  unit: junit/assertj
+  main:
+    kind: single
+    prompt: "`names` is `List.of(\"Bob\", \"Alice\", \"Carl\")`. Which assertion **fails**?"
+    options:
+      - "`assertThat(names).containsExactly(\"Alice\", \"Bob\", \"Carl\")`"
+      - "`assertThat(names).contains(\"Alice\", \"Bob\")`"
+      - "`assertThat(names).containsExactlyInAnyOrder(\"Alice\", \"Bob\", \"Carl\")`"
+      - "`assertThat(names).hasSize(3).doesNotContain(\"Dave\")`"
+    answer: 0
+    explanation: |
+      `containsExactly` also checks the order, and the list is `Bob, Alice, Carl`. `contains` only needs the elements to be there, `containsExactlyInAnyOrder` ignores the order, and the last chain is true as well.
+  followUps: []
+
+- id: assertj-nothing
+  unit: junit/assertj
+  main:
+    kind: single
+    prompt: "What does this test do when `calculate()` returns 99?"
+    code: |
+      @Test
+      void resultIsFortyTwo() {
+          int result = calculate();
+          assertThat(result);
+      }
+    options:
+      - "It passes, because `assertThat(result)` does not check anything."
+      - "It fails, because 99 is not 42."
+      - "It does not compile, because the check is missing."
+      - "It fails with a `NullPointerException`."
+    answer: 0
+    explanation: |
+      `assertThat(result)` only creates an assertion object. The check happens in the chained method such as `isEqualTo(42)`. Without it, the test is always green, which is worse than no test. The code compiles, and nothing is null. (The test never mentions 42 in an assertion, so nobody compares.)
+  followUps: []
+
+- id: assertj-exception-lines
+  unit: junit/assertj
+  main:
+    kind: line
+    prompt: "Check that `parse(\"abc\")` throws an `IllegalArgumentException` with a message that contains `abc`. One line is wrong."
+    lines:
+      - "assertThatThrownBy(() -> parse(\"abc\"))"
+      - "    .isInstanceOf(IllegalArgumentException.class)"
+      - "    .hasMessageContaining(\"abc\");"
+    redHerrings:
+      - "assertThatThrownBy(parse(\"abc\"))"
+    explanation: |
+      `assertThatThrownBy` needs a lambda `() -> ...`, so that the call runs inside AssertJ, which can catch the exception. `parse("abc")` without a lambda would be evaluated before AssertJ is called, and the exception would escape from the test (and the code would not even compile, because the method has no matching parameter). The two chained checks follow on the result.
+  followUps: []
+
+- id: junit-lifecycle-order
+  unit: junit/lifecycle-parameterized
+  main:
+    kind: single
+    prompt: "A test class has `@BeforeAll`, `@BeforeEach` and `@AfterEach` methods and two `@Test` methods. How often does `@BeforeEach` run?"
+    options:
+      - "Twice: once before each test method."
+      - "Once, before the first test."
+      - "Once per class, like `@BeforeAll`."
+      - "Never, unless a test calls it."
+    answer: 0
+    explanation: |
+      `@BeforeEach` runs before **every** test method, so two tests mean two runs; this gives each test a fresh start. `@BeforeAll` is the one that runs once per class (and has to be `static`). JUnit calls lifecycle methods itself.
+  followUps:
+    - kind: single
+      prompt: "Test 1 adds an item to a list that is a field of the test class. Does test 2 see this item?"
+      options:
+        - "No, JUnit creates a new instance of the test class for every test method."
+        - "Yes, the test class is created once and its fields are shared."
+        - "Yes, if test 1 runs first."
+        - "Only if the field is `final`."
+      answer: 0
+      explanation: |
+        Each test method gets its own instance of the class, so fields never leak from one test to the next. That is why the order does not matter, and why tests must not rely on each other.
+
+- id: junit-lifecycle-gaps
+  unit: junit/lifecycle-parameterized
+  main:
+    kind: template
+    prompt: "Make sure that every test starts with a new, empty cart."
+    template: |
+      class ShoppingCartTest {
+
+          private ShoppingCart cart;
+
+          @{{BeforeEach}}
+          void setUp() {
+              cart = new ShoppingCart();
+          }
+
+          @{{Test}}
+          void newCartIsEmpty() {
+              assertThat(cart.isEmpty()).isTrue();
+          }
+      }
+    redHerrings:
+      - "BeforeAll"
+      - "AfterEach"
+      - "ParameterizedTest"
+    explanation: |
+      `@BeforeEach` runs before each test method, so every test gets a fresh cart. `@BeforeAll` would run once and require a `static` method (and a static field), so the tests would share one cart. `@AfterEach` runs too late, and `@ParameterizedTest` needs a data source and parameters.
+  followUps: []
+
+- id: junit-parameterized
+  unit: junit/lifecycle-parameterized
+  main:
+    kind: multi
+    prompt: "Which of these are valid data sources for `@ParameterizedTest`?"
+    options:
+      - "`@ValueSource(ints = {1, 2, 3})`"
+      - "`@CsvSource({\"1, 1, 2\", \"2, 3, 5\"})`"
+      - "`@CsvFileSource(resources = \"/data.csv\")`"
+      - "`@MethodSource(\"cases\")`"
+      - "`@TestData(\"cases\")`"
+    answer: [0, 1, 2, 3]
+    explanation: |
+      `@ValueSource` gives one literal per run, `@CsvSource` and `@CsvFileSource` several values per run (inline or from a file), and `@MethodSource` points to a method that returns a `Stream<Arguments>`. `@TestData` does not exist in JUnit.
+  followUps:
+    - kind: single
+      prompt: "How many times does this test run?"
+      code: |
+        @ParameterizedTest
+        @CsvSource({ "1, 1, 2", "2, 3, 5", "0, 0, 0" })
+        void adds(int a, int b, int expected) { ... }
+      options:
+        - "3 times, once per line."
+        - "Once, with all values in arrays."
+        - "9 times, once per value."
+        - "Once per parameter, so 3 times, but only the first column is used."
+      answer: 0
+      explanation: |
+        Each string is one set of arguments and one run; the comma-separated values become the parameters `a`, `b` and `expected`. In the test result tree you see three separate entries.

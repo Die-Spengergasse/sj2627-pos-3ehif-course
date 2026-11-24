@@ -1,0 +1,6 @@
+id: shopping-cart
+title: "JUnit & AssertJ: ShoppingCart"
+module: junit
+kind: core
+className: ShoppingCart
+published: true
