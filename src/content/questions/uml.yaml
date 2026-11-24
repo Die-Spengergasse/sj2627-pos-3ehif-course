@@ -1,0 +1,233 @@
+- id: uml-notation-reading
+  unit: uml/class-notation
+  main:
+    kind: single
+    prompt: "Which Java member does this UML line describe?"
+    code: |
+      - balance: double
+    options:
+      - "`private double balance;`"
+      - "`public double balance;`"
+      - "`private balance double;`"
+      - "`protected double balance;`"
+    answer: 0
+    explanation: |
+      `-` means private, and UML writes the name first and the type after the colon. So `- balance: double` is `private double balance;`. `+` would be public and `#` protected. `private balance double` has the Java order wrong; Java puts the type first.
+  followUps:
+    - kind: single
+      prompt: "What does this UML operation look like in Java?"
+      code: |
+        + findById(id: int): Customer
+      options:
+        - "`public Customer findById(int id)`"
+        - "`public int findById(Customer id)`"
+        - "`private Customer findById(int id)`"
+        - "`public void findById(int id, Customer c)`"
+      answer: 0
+      explanation: |
+        `+` is public, the parameter `id: int` becomes `int id`, and the type after the closing parenthesis is the **return type**. The result is not a second parameter, and nothing in the line says private.
+
+- id: uml-visibility-symbols
+  unit: uml/class-notation
+  main:
+    kind: multi
+    prompt: "Which pairs of UML visibility symbol and Java meaning are correct?"
+    options:
+      - "`-` is private"
+      - "`+` is public"
+      - "`#` is protected"
+      - "`#` is private"
+      - "`-` is protected"
+    answer: [0, 1, 2]
+    explanation: |
+      `-` private, `+` public, `#` protected (and `~` package-private). `#` is a common trap because it looks like "hidden", but it grants access to subclasses, so it is not private.
+  followUps: []
+
+- id: uml-class-to-diagram
+  unit: uml/class-notation
+  main:
+    kind: single
+    prompt: "Which class box matches this Java class?"
+    code: |
+      public class Counter {
+          private int value;
+          public void increment() { value++; }
+          public int getValue() { return value; }
+      }
+    options:
+      - "`Counter` with `- value: int`, `+ increment()`, `+ getValue(): int`"
+      - "`Counter` with `+ value: int`, `- increment()`, `- getValue(): int`"
+      - "`Counter` with `- value: int`, `+ increment(): int`, `+ getValue()`"
+      - "`Counter` with `# value: int`, `+ increment()`, `+ getValue(): int`"
+    answer: 0
+    explanation: |
+      The private field is `-`, both methods are public (`+`). `increment` returns `void`, so it has no `: Type`, while `getValue` returns an `int`. The second option swaps the visibilities, the third gives `increment` a return type it does not have and drops it from `getValue`, and `#` would mean protected.
+  followUps: []
+
+- id: uml-multiplicity-java
+  unit: uml/associations
+  main:
+    kind: single
+    prompt: "Which Java code fits this diagram?"
+    code: |
+      Team "1" -- "0..*" Player
+    options:
+      - "`class Team { private List<Player> players; }`"
+      - "`class Team { private Player player; }`"
+      - "`class Team { private Optional<Player> player; }`"
+      - "`class Player { private List<Team> teams; }` and nothing in `Team`"
+    answer: 0
+    explanation: |
+      The multiplicity next to `Player` says that one team has zero or more players, so `Team` needs a collection. A single `Player` or an `Optional<Player>` would mean at most one. Since the line has no arrow, `Team` may hold the references (and `Player` could hold a `Team`), but the last option puts a **list of teams** in `Player`, which is the wrong multiplicity.
+  followUps:
+    - kind: single
+      prompt: "A `Customer` may have a `Coupon` or not. Which multiplicity at `Coupon` fits?"
+      options:
+        - "`0..1`"
+        - "`1`"
+        - "`*`"
+        - "`1..*`"
+      answer: 0
+      explanation: |
+        "Maybe one" is `0..1`. `1` means a coupon is always present, `*` means any number, and `1..*` at least one.
+
+- id: uml-direction
+  unit: uml/associations
+  main:
+    kind: single
+    prompt: "Given `Student --> Course` (a directed association), which statement is correct?"
+    options:
+      - "`Student` has a field referring to `Course`; `Course` has no field referring to `Student`."
+      - "`Course` has a field referring to `Student`; `Student` has none."
+      - "`Student` inherits from `Course`."
+      - "Both classes must have a field referring to each other."
+    answer: 0
+    explanation: |
+      The arrow points to the class that is known. `Student` knows `Course`, not the other way round. Inheritance would use a triangle, and mutual references are what a line **without** arrow allows, not what the arrow demands.
+  followUps: []
+
+- id: uml-diamonds
+  unit: uml/associations
+  main:
+    kind: multi
+    prompt: "Which relationships are better modelled as **composition** (filled diamond)?"
+    options:
+      - "`Order` and its `OrderItem`s"
+      - "`House` and its `Room`s"
+      - "`Department` and its `Employee`s"
+      - "`Playlist` and the `Song`s in it"
+      - "`Invoice` and its `InvoiceLine`s"
+    answer: [0, 1, 4]
+    explanation: |
+      Order items, rooms and invoice lines do not make sense without their whole and are created and deleted with it. Employees move between departments and songs live on after a playlist is deleted, so those are **aggregations** (empty diamond). Both are "has-a", the question is only whether the parts can exist alone.
+  followUps:
+    - kind: single
+      prompt: "Which Java code looks like **composition**?"
+      options:
+        - "The `Order` creates its items itself with `new OrderItem(...)` in `addItem` and never hands the list out."
+        - "The `Order` receives a finished `OrderItem` from outside and stores it."
+        - "The `Order` stores a reference to a `Customer` passed in the constructor."
+        - "The `Order` extends `OrderItem`."
+      answer: 0
+      explanation: |
+        Composition means the whole creates and owns the parts. Receiving existing objects from outside is aggregation or a plain association, and `extends` is inheritance, a different relationship.
+
+- id: uml-diamond-template
+  unit: uml/associations
+  main:
+    kind: template
+    prompt: "Fill in the gaps about aggregation and composition."
+    template: |
+      A {{filled}} diamond marks a composition, an {{empty}} diamond an aggregation.
+      In a composition the parts are created and {{owned}} by the whole.
+      The diamond is always drawn at the {{whole}} side.
+    redHerrings:
+      - "dashed"
+      - "part"
+      - "inherited"
+    explanation: |
+      Filled diamond: composition (exclusive ownership). Empty diamond: aggregation (shared ownership, independent parts). The diamond sits at the **whole**, not at the part; the part end has only the multiplicity. "Dashed" belongs to realization and dependency, and nothing is "inherited" here, that is the triangle.
+  followUps: []
+
+- id: uml-arrows
+  unit: uml/inheritance-and-code
+  main:
+    kind: single
+    prompt: "Which diagram line matches this Java code?"
+    code: |
+      public interface Payable { }
+      public class Invoice implements Payable { }
+    options:
+      - "`Payable <|.. Invoice` (dashed line, empty triangle at `Payable`)"
+      - "`Payable <|-- Invoice` (solid line, empty triangle at `Payable`)"
+      - "`Invoice <|.. Payable` (dashed line, empty triangle at `Invoice`)"
+      - "`Payable ..> Invoice` (dashed line, open arrow)"
+    answer: 0
+    explanation: |
+      Implementing an interface is **realization**: dashed line, empty triangle pointing at the interface. A solid line would be `extends`. The triangle never points at the subclass, so the third option is reversed. A dashed open arrow is only a dependency ("uses").
+  followUps:
+    - kind: single
+      prompt: "What does `Printer ..> Report` mean?"
+      options:
+        - "`Printer` only uses `Report`, e.g. as a parameter, without a field."
+        - "`Printer` implements `Report`."
+        - "`Printer` owns a `Report` and deletes it with itself."
+        - "`Printer` extends `Report`."
+      answer: 0
+      explanation: |
+        A dashed line with an open arrow is a **dependency**, the weakest relationship. Implementing would have a triangle, owning would have a filled diamond, extending a solid line with a triangle.
+
+- id: uml-symbol-match
+  unit: uml/inheritance-and-code
+  main:
+    kind: multi
+    prompt: "Which statements about UML relationship symbols are correct?"
+    options:
+      - "An empty triangle on a solid line is generalization (`extends`)."
+      - "An empty triangle on a dashed line is realization (`implements`)."
+      - "A filled diamond is composition."
+      - "A dashed line means inheritance between classes."
+      - "The triangle is drawn at the subclass."
+    answer: [0, 1, 2]
+    explanation: |
+      Solid + triangle is `extends`, dashed + triangle is `implements`, filled diamond is composition. Class inheritance is a **solid** line, and the triangle always points at the **superclass** (or interface), never at the subclass.
+  followUps: []
+
+- id: uml-diagram-to-code
+  unit: uml/inheritance-and-code
+  main:
+    kind: template
+    prompt: "Complete the Java code for this diagram: `Shape` is an abstract class, `Circle` extends it, and `Circle` realizes `Drawable`. A `Canvas` contains `0..*` shapes."
+    template: |
+      public {{abstract}} class Shape { }
+      public class Circle {{extends}} Shape {{implements}} Drawable { }
+      public class Canvas {
+          private {{List}}<Shape> shapes = new ArrayList<>();
+      }
+    redHerrings:
+      - "interface"
+      - "Shape[1]"
+      - "final"
+    explanation: |
+      An abstract class is `abstract`, a subclass `extends` its superclass and `implements` the interface. The `0..*` multiplicity needs a collection such as `List<Shape>`. `interface` is a different kind of type than a class, and a `Shape[1]` would hold exactly one shape.
+  followUps: []
+
+- id: uml-lines-composition
+  unit: uml/inheritance-and-code
+  main:
+    kind: line
+    prompt: "`Library` is composed of `Book`s: the library creates its books and does not give the list away. Build the class. One line does not belong."
+    lines:
+      - "public class Library {"
+      - "    private final List<Book> books = new ArrayList<>();"
+      - "    public Book addBook(String title, String isbn) {"
+      - "        Book book = new Book(title, isbn);"
+      - "        books.add(book);"
+      - "        return book;"
+      - "    }"
+      - "}"
+    redHerrings:
+      - "    public void addBook(Book book) { books.add(book); }"
+    explanation: |
+      With a filled diamond the library creates the `Book` itself (`new Book(title, isbn)`) and keeps the list private. A method that accepts an already existing `Book` from outside expresses an aggregation, where the parts live independently.
+  followUps: []

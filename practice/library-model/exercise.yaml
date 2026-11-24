@@ -1,0 +1,6 @@
+id: library-model
+title: "UML to Java: Library"
+module: uml
+kind: core
+className: Library
+published: true
