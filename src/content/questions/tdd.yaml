@@ -201,34 +201,8 @@
       `@BeforeEach` runs before **every** test method, so each test starts with its own new `Cart`. `@BeforeAll` runs only once for the whole class and would share one object between all tests, which is the opposite of independent. `static` on the field has the same problem.
   followUps: []
 
-- id: double-kinds
-  unit: tdd/isolating-tests
-  main:
-    kind: single
-    prompt: |
-      The `Cart` takes a `PriceService`. In the test you pass `product -> 250` as the service. What is this object?
-    options:
-      - "A stub: it provides a fixed answer so the test does not need a real price source."
-      - "A mock: it verifies that `priceCents` was called."
-      - "The class under test."
-      - "A flaky test."
-    answer: 0
-    explanation: |
-      A stub only supplies answers. A mock additionally records the calls so that the test can verify them (with Mockito: `verify(...)`). The lambda records nothing, so it is a stub. The class under test is `Cart`.
-  followUps:
-    - kind: multi
-      prompt: Which statements about test doubles are correct?
-      options:
-        - "They let a unit test run without a database or network."
-        - "The class under test should get its dependency from outside, for example via the constructor."
-        - "You should mock the class under test, so that the test is as fast as possible."
-        - "Prefer asserting on results; use `verify` when the call itself is the outcome."
-      answer: [0, 1, 3]
-      explanation: |
-        Doubles replace slow or uncontrollable collaborators, and they only work if the class can receive them from outside. Mocking the class under test means you test the mock and not your code. Many `verify` calls tie a test to the implementation, so use them only when the interaction is the observable result (for example "a mail was sent").
-
 - id: tdd-pitfalls
-  unit: tdd/isolating-tests
+  unit: tdd/the-cycle
   main:
     kind: multi
     prompt: Which of these are common TDD pitfalls?

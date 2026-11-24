@@ -74,3 +74,11 @@ Red: write a failing test and see it fail. Green: simplest code that passes. Ref
 - You spend less time in the debugger: when a test turns red, the last small change is the suspect.
 
 TDD does not mean "more tests". It means that the tests **drive** the design, instead of being added afterwards.
+
+## Common pitfalls
+
+- Writing too much code in the Green phase.
+- Skipping the Refactor phase.
+- Writing tests that are too large: several behaviors in one test, so a failure does not tell you what is broken.
+- Not running the tests often enough. Run them after every small step.
+- Not watching the test fail first.

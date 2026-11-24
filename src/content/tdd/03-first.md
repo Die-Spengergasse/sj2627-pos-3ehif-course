@@ -29,7 +29,7 @@ void loadsUser() {
 }
 ```
 
-The fix is not to avoid testing the logic, but to **separate** it from the slow parts: test the logic with in-memory data and replace the slow dependency by a test double (see the last unit).
+The fix is not to avoid testing the logic, but to **separate** it from the slow parts: keep slow parts such as the network or a database out of the unit tests, test the logic with in-memory data, and pass the slow part into the class from outside instead of creating it inside.
 
 ## Independent
 
