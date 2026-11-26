@@ -122,6 +122,125 @@
       The classifier `Person::city` comes first, then the downstream collector. `mapping(Person::name, toList())` converts each person into a name before collecting; with `Person::city`, every group would only contain its own city name repeated. The last line closes `groupingBy`, `collect` and the statement.
   followUps: []
 
+- id: coll-downstream-optional
+  unit: collectors/downstream-collectors
+  main:
+    kind: single
+    prompt: "What is the type of `heaviest`?"
+    code: |
+      record Fruit(String name, Color color, int grams) { }
+
+      var heaviest = basket.stream()
+          .collect(Collectors.groupingBy(
+              Fruit::color,
+              Collectors.maxBy(Comparator.comparingInt(Fruit::grams))
+          ));
+    options:
+      - "`Map<Color, Optional<Fruit>>`"
+      - "`Map<Color, Fruit>`"
+      - "`Map<Color, Integer>`"
+      - "`Optional<Map<Color, Fruit>>`"
+    answer: 0
+    explanation: |
+      The key type comes from the classifier (`Color`), the value type from the downstream collector. `maxBy` starts with *nothing* and must also work for an empty stream, so its result is an `Optional<Fruit>`, even though a group of `groupingBy` is never empty. It returns the whole fruit, not its weight.
+  followUps:
+    - kind: single
+      prompt: "The basket has 7 fruits in 3 colors. How many separate `counting()` collectors (each starting at `0`) are used here?"
+      code: |
+        basket.stream().collect(Collectors.groupingBy(Fruit::color, Collectors.counting()));
+      options:
+        - "3"
+        - "1"
+        - "7"
+        - "10"
+      answer: 0
+      explanation: |
+        `groupingBy` creates a fresh downstream collector for **each group**, so there is one counter per color. Each counter starts at `0` and only sees the fruits of its own color.
+
+- id: coll-filtering-vs-filter
+  unit: collectors/downstream-collectors
+  main:
+    kind: single
+    prompt: "Apple (RED, 180 g), Banana (YELLOW, 120 g), Kiwi (GREEN, 75 g) and Pear (GREEN, 170 g) are in the basket. What does this print?"
+    code: |
+      System.out.println(basket.stream()
+          .filter(f -> f.grams() > 150)
+          .collect(Collectors.groupingBy(Fruit::color, Collectors.counting())));
+    options:
+      - "`{RED=1, GREEN=1}` (in any order)"
+      - "`{RED=1, YELLOW=0, GREEN=1}` (in any order)"
+      - "`{RED=1, YELLOW=1, GREEN=2}` (in any order)"
+      - "`{true=2, false=2}`"
+    answer: 0
+    explanation: |
+      `filter` removes Banana and Kiwi **before** grouping, so no yellow fruit reaches `groupingBy`, and there is no YELLOW key at all. To keep YELLOW with a count of `0`, filter **inside** the group: `groupingBy(Fruit::color, filtering(f -> f.grams() > 150, counting()))`.
+  followUps: []
+
+- id: coll-summarizing
+  unit: collectors/downstream-collectors
+  main:
+    kind: single
+    prompt: "You need the lightest, the heaviest and the average weight **per color**, in one pass over the stream. Which downstream collector fits?"
+    code: |
+      Map<Color, ???> stats = basket.stream()
+          .collect(Collectors.groupingBy(Fruit::color, ???));
+    options:
+      - "`Collectors.summarizingInt(Fruit::grams)`, giving `Map<Color, IntSummaryStatistics>`"
+      - "`Collectors.averagingInt(Fruit::grams)`, giving `Map<Color, Double>`"
+      - "`Collectors.summingInt(Fruit::grams)`, giving `Map<Color, Integer>`"
+      - "`Collectors.maxBy(Comparator.comparingInt(Fruit::grams))`, giving `Map<Color, Optional<Fruit>>`"
+    answer: 0
+    explanation: |
+      `summarizingInt` computes count, sum, min, max and average in one pass and stores them in an `IntSummaryStatistics` object per group. You read them with `getMin()`, `getMax()` and `getAverage()`. Each of the other collectors only gives one of the numbers.
+  followUps:
+    - kind: single
+      prompt: "What does `stats.getMax()` return here?"
+      code: |
+        IntSummaryStatistics stats = Stream.<Fruit>empty()
+            .collect(Collectors.summarizingInt(Fruit::grams));
+      options:
+        - "`Integer.MIN_VALUE`"
+        - "`0`"
+        - "`Optional.empty()`"
+        - "It throws a `NoSuchElementException`."
+      answer: 0
+      explanation: |
+        `summarizingInt` does not use `Optional`. Its memory starts with `max = Integer.MIN_VALUE` (and `min = Integer.MAX_VALUE`), so that the first element always replaces them. Without elements, these start values stay. Check `getCount() > 0` before using min and max.
+
+- id: coll-collecting-and-then
+  unit: collectors/downstream-collectors
+  main:
+    kind: single
+    prompt: "What is the type of `result`?"
+    code: |
+      var result = basket.stream()
+          .collect(Collectors.groupingBy(
+              Fruit::color,
+              Collectors.collectingAndThen(
+                  Collectors.counting(),
+                  count -> count + " fruits"
+              )
+          ));
+    options:
+      - "`Map<Color, String>`"
+      - "`Map<Color, Long>`"
+      - "`Map<Color, List<String>>`"
+      - "`String`"
+    answer: 0
+    explanation: |
+      `counting()` produces a `Long` per color, and then the finisher `count -> count + " fruits"` turns that `Long` into a `String`, e.g. `"3 fruits"`. With `collectingAndThen`, the value type of the map is the result type of the finisher function.
+  followUps:
+    - kind: single
+      prompt: "The basket has 7 fruits in 3 colors. How often is the finisher `count -> count + \" fruits\"` called?"
+      options:
+        - "3 times, once per color"
+        - "7 times, once per fruit"
+        - "Once, for the whole map"
+        - "10 times"
+      answer: 0
+      explanation: |
+        The finisher runs once **per bucket**, after its collector has finished. It is not called per element (that is what `mapping` does), and not once for the whole map.
+
 - id: coll-partition-keys
   unit: collectors/partitioning-by
   main:
